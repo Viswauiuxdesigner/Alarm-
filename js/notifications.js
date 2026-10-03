@@ -22,10 +22,14 @@ class NotificationManager {
         this.swRegistration = reg;
         console.log('Service Worker registered:', reg.scope);
 
-        // Listen for messages from SW (e.g. notification clicks or background actions)
+        // Listen for messages from SW (e.g. notification clicks or remote response dismissals)
         navigator.serviceWorker.addEventListener('message', (event) => {
-          if (event.data && event.data.type === 'NOTIFICATION_ACTION') {
-            window.dispatchEvent(new CustomEvent('duo:notification_action', { detail: event.data }));
+          if (event.data) {
+            if (event.data.type === 'NOTIFICATION_ACTION') {
+              window.dispatchEvent(new CustomEvent('duo:notification_action', { detail: event.data }));
+            } else if (event.data.type === 'REMOTE_RESPONSE_UPDATE') {
+              window.sync?.fetchLatest();
+            }
           }
         });
       } catch (err) {

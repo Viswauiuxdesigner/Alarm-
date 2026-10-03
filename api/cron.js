@@ -5,18 +5,52 @@
 const db = require('./_db');
 const push = require('./_push');
 
-// Format standard date key: YYYY-MM-DD
-function getDateKey(date = new Date()) {
-  const year = date.getUTCFullYear();
-  const month = String(date.getUTCMonth() + 1).padStart(2, '0');
-  const day = String(date.getUTCDate()).padStart(2, '0');
-  return `${year}-${month}-${day}`;
+// Helper to compute accurate local time and date info for a given timezone
+function getLocalTimeInfo(date, timeZone = 'UTC') {
+  try {
+    const dtf = new Intl.DateTimeFormat('en-US', {
+      timeZone: timeZone || 'UTC',
+      hour12: false,
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+      weekday: 'short'
+    });
+    const parts = dtf.formatToParts(date);
+    const map = {};
+    parts.forEach(p => { map[p.type] = p.value; });
+    
+    let hour = map.hour === '24' ? '00' : map.hour;
+    const time = `${hour}:${map.minute}`;
+    const dateKey = `${map.year}-${map.month}-${map.day}`;
+    
+    const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+    const dayOfWeek = days.indexOf(map.weekday);
+    return {
+      time,
+      dateKey,
+      dayOfWeek: dayOfWeek >= 0 ? dayOfWeek : date.getUTCDay()
+    };
+  } catch (e) {
+    // Fallback to UTC if timezone string is invalid
+    const year = date.getUTCFullYear();
+    const month = String(date.getUTCMonth() + 1).padStart(2, '0');
+    const day = String(date.getUTCDate()).padStart(2, '0');
+    const h = String(date.getUTCHours()).padStart(2, '0');
+    const m = String(date.getUTCMinutes()).padStart(2, '0');
+    return {
+      time: `${h}:${m}`,
+      dateKey: `${year}-${month}-${day}`,
+      dayOfWeek: date.getUTCDay()
+    };
+  }
 }
 
-// Check if a reminder repeats on given day of week
-function isReminderActiveOnDay(reminder, date) {
+// Check if a reminder repeats on given day in target timezone
+function isReminderActiveOnDay(reminder, dayOfWeek, dateKey) {
   if (!reminder || !reminder.active) return false;
-  const dayOfWeek = date.getUTCDay();
 
   switch (reminder.repeat) {
     case 'daily':
@@ -27,7 +61,7 @@ function isReminderActiveOnDay(reminder, date) {
       return Array.isArray(reminder.customDays) && reminder.customDays.includes(dayOfWeek);
     case 'once':
       const remDateKey = reminder.onceDate || (reminder.createdAt ? reminder.createdAt.split('T')[0] : '');
-      return remDateKey === getDateKey(date);
+      return remDateKey === dateKey;
     default:
       return true;
   }
@@ -62,11 +96,6 @@ module.exports = async function handler(req, res) {
   }
 
   const now = new Date();
-  const utcHours = String(now.getUTCHours()).padStart(2, '0');
-  const utcMinutes = String(now.getUTCMinutes()).padStart(2, '0');
-  const currentUtcTime = `${utcHours}:${utcMinutes}`;
-  const dateKey = getDateKey(now);
-
   const pairIds = await db.getAllPairIds();
 
   // Fast exit if no pairs exist
@@ -96,95 +125,114 @@ module.exports = async function handler(req, res) {
       const reminders = data.reminders || [];
       const responses = data.responses || [];
       const subscriptions = data.subscriptions || [];
-      const users = [data.pair.user1, data.pair.user2].filter(Boolean);
+      const pairTimezone = (data.pair && data.pair.timezone) || 'UTC';
 
       let subscriptionsChanged = false;
 
       for (const reminder of reminders) {
         stats.remindersEvaluated++;
-        if (!isReminderActiveOnDay(reminder, now)) continue;
+        
+        // Use reminder timezone or fallback to pair timezone
+        const reminderTz = reminder.timezone || pairTimezone || 'UTC';
+        const { time: currentLocalTime, dateKey: localDateKey, dayOfWeek: localDayOfWeek } = getLocalTimeInfo(now, reminderTz);
 
-        // Check each user's trigger condition (scheduled time or snoozed time)
-        for (const user of users) {
-          if (!user || !user.id) continue;
+        if (!isReminderActiveOnDay(reminder, localDayOfWeek, localDateKey)) continue;
 
-          // 1. Check Snooze status
-          const userResp = responses.find(
-            r => r.reminderId === reminder.id && r.date === dateKey && r.userId === user.id
+        // 1. Check if Base Scheduled Time is Due
+        const isBaseDue = (reminder.time === currentLocalTime);
+
+        // 2. Check if Snooze Time is Due (for any snoozed response for this reminder today)
+        const snoozedResp = responses.find(r => 
+          r.reminderId === reminder.id && 
+          r.date === localDateKey && 
+          r.status === 'snoozed' && 
+          r.snoozeUntil
+        );
+
+        let isSnoozeDue = false;
+        let snoozeTriggerKey = '';
+        if (snoozedResp && snoozedResp.snoozeUntil) {
+          const snoozeDate = new Date(snoozedResp.snoozeUntil);
+          const diffMs = Math.abs(now.getTime() - snoozeDate.getTime());
+          // 70s window allows external 1-minute crons to reliably capture the minute
+          if (diffMs <= 70000) {
+            isSnoozeDue = true;
+            snoozeTriggerKey = `snooze_${Math.floor(snoozeDate.getTime() / 60000)}`;
+          }
+        }
+
+        // If neither base time nor snooze is due, skip
+        if (!isBaseDue && !isSnoozeDue) continue;
+
+        // Check if reminder was already resolved today (Going or Skipped) by either user
+        const isResolved = responses.some(r =>
+          r.reminderId === reminder.id &&
+          r.date === localDateKey &&
+          (r.status === 'going' || r.status === 'skipped')
+        );
+
+        // If already resolved (e.g. user went earlier), do not alert for base time
+        if (isResolved && isBaseDue && !isSnoozeDue) {
+          continue;
+        }
+
+        // 3. Duplicate Delivery Protection Key
+        const triggerKey = isSnoozeDue ? snoozeTriggerKey : `base_${reminder.time}`;
+        const deliveryKey = `${pairId}_${reminder.id}_${localDateKey}_${triggerKey}`;
+        const alreadySent = await db.isDelivered(deliveryKey);
+
+        if (alreadySent) {
+          stats.duplicatesSkipped++;
+          continue;
+        }
+
+        // Mark delivery BEFORE sending to strictly prevent race conditions
+        await db.markDelivered(deliveryKey);
+
+        // 4. Target all active subscriptions belonging to this pair (Phone A and Phone B)
+        if (subscriptions.length === 0) continue;
+
+        // 5. Construct payload
+        const payload = {
+          type: 'reminder',
+          reminderId: reminder.id,
+          pairId: pairId,
+          title: reminder.title,
+          time: reminder.time,
+          dateKey: localDateKey,
+          occurrenceId: `${reminder.id}_${localDateKey}`,
+          body: isSnoozeDue
+            ? `Snooze ended for ${reminder.title}. What are you doing?`
+            : `It's time for ${reminder.title}`,
+          icon: '/assets/icons/icon-192.png',
+          badge: '/assets/icons/icon-192.png',
+          tag: `reminder-${reminder.id}`,
+          data: {
+            reminderId: reminder.id,
+            pairId: pairId,
+            title: reminder.title,
+            icon: reminder.icon,
+            dateKey: localDateKey,
+            occurrenceId: `${reminder.id}_${localDateKey}`,
+            url: `./?reminderId=${reminder.id}`
+          },
+          actions: [
+            { action: 'going', title: "Going" },
+            { action: 'skipped', title: "Skip" },
+            { action: 'snooze', title: "Snooze 10m" }
+          ]
+        };
+
+        // 6. Send Web Push to BOTH phone subscriptions
+        const pushRes = await push.sendPushToMultiple(subscriptions, payload);
+        stats.notificationsSent += pushRes.sent;
+
+        // Prune any expired endpoints
+        if (pushRes.expiredEndpoints && pushRes.expiredEndpoints.length > 0) {
+          data.subscriptions = data.subscriptions.filter(
+            s => !pushRes.expiredEndpoints.includes(s.subscription && s.subscription.endpoint)
           );
-
-          let isDueNow = false;
-          let triggerType = 'scheduled';
-          let triggerTimeKey = reminder.time;
-
-          if (userResp && userResp.status === 'snoozed' && userResp.snoozeUntil) {
-            const snoozeDate = new Date(userResp.snoozeUntil);
-            const diffMs = Math.abs(now.getTime() - snoozeDate.getTime());
-            if (diffMs <= 70000) { // +/- 1 min tolerance
-              isDueNow = true;
-              triggerType = 'snooze';
-              triggerTimeKey = `snooze_${snoozeDate.getUTCHours()}_${snoozeDate.getUTCMinutes()}`;
-            }
-          } else {
-            // Check base reminder time
-            if (reminder.time === currentUtcTime || reminder.time === now.toTimeString().substring(0, 5)) {
-              isDueNow = true;
-              triggerType = 'base';
-            }
-          }
-
-          if (!isDueNow) continue;
-
-          // 2. Duplicate Protection Key: pairId_reminderId_dateKey_userId_triggerTimeKey
-          const deliveryKey = `${pairId}_${reminder.id}_${dateKey}_${user.id}_${triggerTimeKey}`;
-          const alreadySent = await db.isDelivered(deliveryKey);
-
-          if (alreadySent) {
-            stats.duplicatesSkipped++;
-            continue;
-          }
-
-          // Mark delivery BEFORE sending to strictly prevent concurrent duplicate sends
-          await db.markDelivered(deliveryKey);
-
-          // 3. Gather this user's push subscriptions
-          const userSubs = subscriptions.filter(s => s.userId === user.id);
-          if (userSubs.length === 0) continue;
-
-          // 4. Construct rich notification payload
-          const payload = {
-            title: `${reminder.icon || '⏰'} ${reminder.title}`,
-            body: triggerType === 'snooze'
-              ? `Snooze ended for ${reminder.title}. What are you doing?`
-              : `It's time for your ${reminder.title} reminder. Tap to respond!`,
-            icon: '/assets/icons/icon-192.png',
-            badge: '/assets/icons/icon-192.png',
-            tag: `reminder-${reminder.id}`,
-            data: {
-              reminderId: reminder.id,
-              title: reminder.title,
-              icon: reminder.icon,
-              dateKey,
-              url: `./?reminderId=${reminder.id}`
-            },
-            actions: [
-              { action: 'going', title: "✅ I'm Going" },
-              { action: 'skipped', title: "❌ Skip Today" },
-              { action: 'snooze', title: "⏰ Snooze 10m" }
-            ]
-          };
-
-          // 5. Send Web Push
-          const pushRes = await push.sendPushToMultiple(userSubs, payload);
-          stats.notificationsSent += pushRes.sent;
-
-          // Prune invalid endpoints
-          if (pushRes.expiredEndpoints && pushRes.expiredEndpoints.length > 0) {
-            data.subscriptions = data.subscriptions.filter(
-              s => !pushRes.expiredEndpoints.includes(s.subscription.endpoint)
-            );
-            subscriptionsChanged = true;
-          }
+          subscriptionsChanged = true;
         }
       }
 

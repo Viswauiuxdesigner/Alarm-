@@ -64,7 +64,7 @@ powershell -ExecutionPolicy Bypass -File server.ps1
 
 Add these in **Vercel Project Settings → Environment Variables**:
 
-| Variable | Required | Description | Example |
+| Variable | Required | Description | Example |       
 |---|---|---|---|
 | `KV_REST_API_URL` | Yes (Prod) | Upstash Redis / Vercel KV REST API URL | `https://prompt-duck-123.upstash.io` |
 | `KV_REST_API_TOKEN` | Yes (Prod) | Upstash Redis / Vercel KV REST Token | `AXe...=` |

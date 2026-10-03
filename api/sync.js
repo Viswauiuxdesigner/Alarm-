@@ -2,6 +2,7 @@
 // Handles Pair Creation, Sync, Reminder CRUD, and Occurrence Responses for 2 People.
 
 const db = require('./_db');
+const push = require('./_push');
 
 // Helper to generate a clean 6-character pairing code
 function generatePairCode() {
@@ -50,7 +51,7 @@ module.exports = async function handler(req, res) {
 
       // ACTION: Create Pair
       if (action === 'create_pair') {
-        const { userName, partnerName } = body;
+        const { userName, partnerName, timezone } = body;
         const pairId = generatePairCode();
         const user1Id = 'u_' + Math.random().toString(36).substring(2, 9);
         const user2Id = 'u_' + Math.random().toString(36).substring(2, 9);
@@ -60,6 +61,7 @@ module.exports = async function handler(req, res) {
           user1: { id: user1Id, name: userName || 'Viswa' },
           user2: { id: user2Id, name: partnerName || 'Partner', joined: false },
           paired: false,
+          timezone: timezone || 'UTC',
           createdAt: new Date().toISOString()
         };
 
@@ -72,6 +74,7 @@ module.exports = async function handler(req, res) {
             icon: '🚶',
             time: '06:00',
             repeat: 'daily',
+            timezone: timezone || 'UTC',
             active: true,
             createdAt: new Date().toISOString()
           }
@@ -97,7 +100,7 @@ module.exports = async function handler(req, res) {
 
       // ACTION: Join / Reconnect Existing Pair
       if (action === 'join_pair') {
-        const { pairCode, userName, partnerName } = body;
+        const { pairCode, userName, partnerName, timezone } = body;
         const pairId = (pairCode || '').trim().toUpperCase();
         const data = await db.getPairData(pairId);
 
@@ -121,6 +124,9 @@ module.exports = async function handler(req, res) {
         }
 
         data.pair.paired = true;
+        if (timezone) {
+          data.pair.timezone = timezone;
+        }
         await db.savePairData(pairId, data);
 
         return res.status(200).json({
@@ -137,12 +143,13 @@ module.exports = async function handler(req, res) {
       let data = await db.getPairData(pairId);
 
       if (!data) {
-        // Automatically initialize if missing so demo / test runs smoothly
+        // Automatically initialize if missing
         data = {
           pair: {
             id: pairId,
             user1: { id: 'u_1', name: body.userName || 'You' },
             user2: { id: 'u_2', name: body.partnerName || 'Partner' },
+            timezone: body.timezone || 'UTC',
             createdAt: new Date().toISOString()
           },
           reminders: [],
@@ -207,6 +214,26 @@ module.exports = async function handler(req, res) {
         }
 
         await db.savePairData(pairId, data);
+
+        // CROSS-DEVICE DISMISSAL: Send silent/dismiss push to partner device(s)
+        // This closes active notification on the partner phone immediately!
+        if (data.subscriptions && data.subscriptions.length > 0) {
+          const partnerSubs = data.subscriptions.filter(s => s.userId !== userId);
+          if (partnerSubs.length > 0) {
+            const dismissPayload = {
+              type: 'response_update',
+              reminderId,
+              dateKey: date,
+              userId,
+              status,
+              snoozeUntil: snoozeUntil || null
+            };
+            push.sendPushToMultiple(partnerSubs, dismissPayload).catch(err => {
+              console.warn('Failed to send partner response dismissal push:', err);
+            });
+          }
+        }
+
         return res.status(200).json({
           success: true,
           response: newResponse,

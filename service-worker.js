@@ -87,12 +87,13 @@ self.addEventListener('fetch', (event) => {
 // Web Push Event Handler
 self.addEventListener('push', (event) => {
   let data = {
-    title: '⏰ Duo Reminder',
+    type: 'reminder',
+    reminderId: 'default',
+    title: 'Reminder',
     body: "It's time for your shared reminder. Tap to respond!",
     icon: './assets/icons/icon-192.png',
     badge: './assets/icons/icon-192.png',
-    tag: 'duo-reminder',
-    data: {}
+    tag: 'reminder-default'
   };
 
   if (event.data) {
@@ -103,23 +104,62 @@ self.addEventListener('push', (event) => {
     }
   }
 
+  // 1. Cross-Device Notification Dismissal / Update
+  if (data.type === 'response_update') {
+    const reminderId = data.reminderId;
+    const targetTag = reminderId ? `reminder-${reminderId}` : null;
+
+    event.waitUntil(
+      (async () => {
+        if (targetTag && self.registration && self.registration.getNotifications) {
+          const notifications = await self.registration.getNotifications({ tag: targetTag });
+          notifications.forEach(n => n.close());
+        }
+
+        // Notify any active clients to refresh state immediately
+        const clients = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
+        clients.forEach(client => {
+          client.postMessage({
+            type: 'REMOTE_RESPONSE_UPDATE',
+            reminderId: data.reminderId,
+            status: data.status,
+            dateKey: data.dateKey
+          });
+        });
+      })()
+    );
+    return;
+  }
+
+  // 2. Display System Notification (Alarm-like behavior)
+  const reminderId = data.reminderId || (data.data && data.data.reminderId) || 'default';
+  const displayTitle = data.title ? (data.title.startsWith('⏰') ? data.title : `⏰ ${data.title}`) : '⏰ Duo Reminder';
+  const displayBody = data.body || `It's time for ${data.title || 'your reminder'}`;
+
   const options = {
-    body: data.body,
+    body: displayBody,
     icon: data.icon || './assets/icons/icon-192.png',
     badge: data.badge || './assets/icons/icon-192.png',
     vibrate: [200, 100, 200, 100, 200],
-    tag: data.tag || 'duo-reminder',
+    tag: `reminder-${reminderId}`,
     renotify: true,
     requireInteraction: true,
-    data: data.data || {},
+    data: {
+      type: 'reminder',
+      reminderId: reminderId,
+      pairId: data.pairId,
+      title: data.title,
+      dateKey: data.dateKey,
+      url: `./?reminderId=${reminderId}`
+    },
     actions: data.actions || [
-      { action: 'going', title: "✅ I'm Going" },
-      { action: 'skipped', title: "❌ Skip Today" },
-      { action: 'snooze', title: "⏰ Snooze 10m" }
+      { action: 'going', title: "Going" },
+      { action: 'skipped', title: "Skip" },
+      { action: 'snooze', title: "Snooze 10m" }
     ]
   };
 
-  event.waitUntil(self.registration.showNotification(data.title, options));
+  event.waitUntil(self.registration.showNotification(displayTitle, options));
 });
 
 // Notification Click & Action Handler
@@ -129,11 +169,42 @@ self.addEventListener('notificationclick', (event) => {
   const action = event.action; // 'going', 'skipped', 'snooze', or empty
   const notificationData = event.notification.data || {};
   const reminderId = notificationData.reminderId;
+  const pairId = notificationData.pairId;
+  const dateKey = notificationData.dateKey;
   const targetUrl = reminderId ? `./?reminderId=${reminderId}&action=${action || 'open'}` : './';
 
   event.waitUntil(
-    self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {
-      // 1. If an existing window is open, focus it and post message
+    (async () => {
+      // 1. If an action button was tapped (Going / Skip / Snooze), submit response to backend
+      if (action && ['going', 'skipped', 'snooze'].includes(action) && reminderId && pairId) {
+        try {
+          let snoozeUntil = null;
+          let status = action === 'going' ? 'going' : (action === 'skipped' ? 'skipped' : 'snoozed');
+          if (action === 'snooze') {
+            const sDate = new Date();
+            sDate.setMinutes(sDate.getMinutes() + 10);
+            snoozeUntil = sDate.toISOString();
+          }
+
+          // We attempt direct sync to backend
+          await fetch('./api/sync', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              action: 'submit_response',
+              pairId,
+              reminderId,
+              date: dateKey || new Date().toISOString().split('T')[0],
+              userId: 'from_notification',
+              status,
+              snoozeUntil
+            })
+          }).catch(() => {});
+        } catch (e) {}
+      }
+
+      // 2. Focus or open window
+      const clientList = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
       for (const client of clientList) {
         if (client.url.includes(self.location.origin) && 'focus' in client) {
           client.postMessage({
@@ -146,10 +217,10 @@ self.addEventListener('notificationclick', (event) => {
         }
       }
 
-      // 2. Otherwise launch new window navigating directly to the reminder
-      if (self.clients.openWindow) {
+      // 3. Otherwise launch new window if user tapped body without open window
+      if (self.clients.openWindow && (!action || action === 'open')) {
         return self.clients.openWindow(targetUrl);
       }
-    })
+    })()
   );
 });

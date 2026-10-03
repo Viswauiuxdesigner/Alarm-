@@ -68,11 +68,13 @@ class SyncEngine {
     const user1 = { id: 'u_' + Math.random().toString(36).substring(2, 9), name: (userName || 'Viswa').trim() };
     const user2 = { id: 'u_' + Math.random().toString(36).substring(2, 9), name: (partnerName || 'Partner').trim(), joined: false };
 
+    const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC';
     const pair = {
       id: defaultPairId,
       user1,
       user2,
       paired: false,
+      timezone,
       createdAt: new Date().toISOString()
     };
 
@@ -84,6 +86,7 @@ class SyncEngine {
         icon: '🚶',
         time: '06:00',
         repeat: window.CONFIG.REPEAT.DAILY,
+        timezone,
         active: true,
         createdAt: new Date().toISOString()
       }
@@ -96,7 +99,8 @@ class SyncEngine {
         body: JSON.stringify({
           action: 'create_pair',
           userName: user1.name,
-          partnerName: user2.name
+          partnerName: user2.name,
+          timezone
         })
       });
 
@@ -108,6 +112,7 @@ class SyncEngine {
           window.storage.setReminders(data.reminders || initialReminders);
           window.storage.setResponses(data.responses || []);
           this.broadcast('SYNC_UPDATE', { reminders: data.reminders, responses: data.responses, pair: data.pair });
+          window.notifications?.syncSubscription();
           return data.pair;
         }
       }
@@ -121,6 +126,7 @@ class SyncEngine {
     window.storage.setReminders(initialReminders);
     window.storage.setResponses([]);
     this.broadcast('SYNC_UPDATE', { reminders: initialReminders, responses: [], pair });
+    window.notifications?.syncSubscription();
     return pair;
   }
 
@@ -131,6 +137,8 @@ class SyncEngine {
       return { success: false, error: "Please enter your partner's 6-character code." };
     }
 
+    const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC';
+
     try {
       const res = await fetch(this.apiBase, {
         method: 'POST',
@@ -139,7 +147,8 @@ class SyncEngine {
           action: 'join_pair',
           pairCode: code,
           userName: (userName || '').trim(),
-          partnerName: (partnerName || '').trim()
+          partnerName: (partnerName || '').trim(),
+          timezone
         })
       });
 
@@ -152,6 +161,7 @@ class SyncEngine {
         window.storage.setResponses(data.responses || []);
         window.storage.setActiveSession(true);
         this.broadcast('SYNC_UPDATE', { reminders: data.reminders, responses: data.responses, pair: data.pair });
+        window.notifications?.syncSubscription();
         return { success: true, pair: data.pair };
       }
       return {
@@ -171,6 +181,9 @@ class SyncEngine {
   async saveReminder(reminder) {
     const pair = window.storage.getPair();
     const reminders = window.storage.getReminders();
+    if (!reminder.timezone) {
+      reminder.timezone = Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC';
+    }
     const idx = reminders.findIndex(r => r.id === reminder.id);
     if (idx >= 0) {
       reminders[idx] = reminder;

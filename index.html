@@ -105,15 +105,19 @@
           </div>
         </div>
 
-        <!-- Notifications & Device Section -->
+        <!-- Notifications Section -->
         <div class="settings-section">
-          <div class="settings-section-title">Notifications & PWA</div>
-          <div class="settings-item">
-            <div class="settings-item-label">
-              <span>Local Alarms & Chimes</span>
-              <span class="settings-item-subtext">Synthesized Web Audio alarm</span>
+          <div class="settings-section-title">Notifications</div>
+          <div class="settings-item" style="flex-direction: column; align-items: flex-start; gap: 10px;">
+            <div id="settings-notif-status-display" style="font-weight: 600; font-size: 0.95rem;">
+              ● Notifications enabled
             </div>
-            <div id="settings-notif-status"></div>
+            <div id="settings-notif-action-wrap" style="width: 100%;">
+              <button class="btn-primary" id="btn-enable-notifications" style="height: 42px; font-size: 0.9rem;">Enable Notifications</button>
+            </div>
+            <div id="settings-notif-helper" style="font-size: 0.8rem; color: var(--text-secondary);">
+              Receive shared reminder alerts even when your screen is locked.
+            </div>
           </div>
           <div class="settings-item">
             <div class="settings-item-label">
@@ -122,12 +126,22 @@
             </div>
             <button class="user-bar-btn" id="btn-test-notification">Test ⏰</button>
           </div>
-          <div class="settings-item" id="btn-install-app-wrap">
+        </div>
+
+        <!-- Install App Section -->
+        <div class="settings-section">
+          <div class="settings-section-title">Install App</div>
+          <div class="settings-item" style="flex-direction: column; align-items: flex-start; gap: 10px;">
             <div class="settings-item-label">
-              <span>Install PWA App</span>
-              <span class="settings-item-subtext">Add to Android / iOS home screen</span>
+              <span>App-like Experience</span>
+              <span class="settings-item-subtext">Open directly in standalone mode without browser bars.</span>
             </div>
-            <button class="user-bar-btn" id="btn-install-app" style="color: var(--primary); border-color: var(--primary-border);">Install 📲</button>
+            <div id="settings-install-action-wrap" style="width: 100%;">
+              <button class="btn-primary" id="btn-install-app" style="height: 42px; font-size: 0.9rem;">Install App 📲</button>
+              <div id="settings-install-helper" style="display: none; font-size: 0.82rem; color: var(--text-secondary); margin-top: 6px; line-height: 1.4;">
+                Install this app from your browser menu → Add to Home Screen / Install App
+              </div>
+            </div>
           </div>
         </div>
 

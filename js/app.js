@@ -526,6 +526,11 @@ document.addEventListener('DOMContentLoaded', async () => {
       }, 3000);
     });
 
+    // Enable Notifications Button in Settings
+    document.getElementById('btn-enable-notifications')?.addEventListener('click', () => {
+      window.ui.enableNotificationsFlow();
+    });
+
     // Install PWA Button
     document.getElementById('btn-install-app')?.addEventListener('click', async () => {
       if (window.ui.deferredPrompt) {
@@ -535,8 +540,11 @@ document.addEventListener('DOMContentLoaded', async () => {
           window.ui.showToast('Thank you for installing Duo! 🎉');
         }
         window.ui.deferredPrompt = null;
+        window.ui.renderSettings();
       } else {
-        alert('To install Duo on Android, tap the browser menu (⋮) and choose "Install App" or "Add to Home Screen".');
+        const installHelper = document.getElementById('settings-install-helper');
+        if (installHelper) installHelper.style.display = 'block';
+        window.ui.showToast('Tap browser menu (⋮) → Add to Home screen to install 📲');
       }
     });
 

@@ -238,7 +238,10 @@ class UIManager {
 
     const userNameInput = document.getElementById('settings-user-name');
     const partnerNameInput = document.getElementById('settings-partner-name');
-    const notifStatusEl = document.getElementById('settings-notif-status');
+    const notifStatusEl = document.getElementById('settings-notif-status-display');
+    const notifActionWrap = document.getElementById('settings-notif-action-wrap');
+    const installHelper = document.getElementById('settings-install-helper');
+    const installBtn = document.getElementById('btn-install-app');
 
     if (pair && currentUser) {
       if (userNameInput) userNameInput.value = currentUser.name;
@@ -247,15 +250,44 @@ class UIManager {
       if (partnerNameInput) partnerNameInput.value = partnerName;
     }
 
-    if (notifStatusEl) {
+    // 1. Notification Status & Actions
+    if (notifStatusEl && notifActionWrap) {
       if (permission === 'granted') {
-        notifStatusEl.innerHTML = '<span style="color:var(--success);font-weight:700;">✅ Enabled</span>';
+        notifStatusEl.innerHTML = '<span style="color: #10B981;">● Notifications enabled</span>';
+        notifActionWrap.innerHTML = '<div style="font-size: 0.85rem; color: #10B981; font-weight: 600;">Active & ready for reminder alerts</div>';
       } else if (permission === 'denied') {
-        notifStatusEl.innerHTML = '<span style="color:var(--danger);font-weight:700;">🚫 Blocked</span>';
+        notifStatusEl.innerHTML = '<span style="color: #EF4444;">○ Notifications blocked</span>';
+        notifActionWrap.innerHTML = '<div style="font-size: 0.82rem; color: #EF4444; line-height: 1.4;">Notifications are blocked. Enable notifications for this app in your device/browser settings.</div>';
       } else {
-        notifStatusEl.innerHTML = '<button class="user-bar-btn" onclick="ui.promptNotificationPermission()">Enable</button>';
+        notifStatusEl.innerHTML = '<span style="color: #6B7280;">○ Notifications disabled</span>';
+        notifActionWrap.innerHTML = '<button class="btn-primary" id="btn-enable-notifications" style="height: 42px; font-size: 0.9rem;" onclick="ui.enableNotificationsFlow()">Enable Notifications</button>';
       }
     }
+
+    // 2. PWA Install State
+    const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
+    if (isStandalone) {
+      if (installBtn) installBtn.style.display = 'none';
+      if (installHelper) {
+        installHelper.style.display = 'block';
+        installHelper.innerHTML = '<span style="color: #10B981; font-weight: 600;">● Installed & running in standalone mode</span>';
+      }
+    } else {
+      if (installBtn) installBtn.style.display = 'flex';
+      if (installHelper) {
+        installHelper.style.display = this.deferredPrompt ? 'none' : 'block';
+      }
+    }
+  }
+
+  async enableNotificationsFlow() {
+    const perm = await window.notifications.requestPermissionAndSubscribe();
+    if (perm === 'granted') {
+      this.showToast('🔔 Notifications enabled & connected to server!');
+    } else if (perm === 'denied') {
+      this.showToast('⚠️ Notifications blocked in browser settings.');
+    }
+    this.renderSettings();
   }
 
   openDeactivateModal() {
