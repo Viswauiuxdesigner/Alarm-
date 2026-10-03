@@ -5,12 +5,73 @@ document.addEventListener('DOMContentLoaded', async () => {
   // Track triggered reminders for today to prevent repeated rapid firing
   const triggeredToday = new Set();
 
+  // Helper to switch onboarding sub-steps
+  function showOnboardingStep(stepId) {
+    const steps = [
+      'onboard-step-welcome',
+      'onboard-step-create-name',
+      'onboard-step-create-waiting',
+      'onboard-step-join',
+      'onboard-step-success'
+    ];
+    steps.forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.style.display = (id === stepId) ? 'flex' : 'none';
+    });
+  }
+
+  let waitingPollInterval = null;
+  function startWaitingForPartner(pairId) {
+    if (waitingPollInterval) clearInterval(waitingPollInterval);
+    waitingPollInterval = setInterval(async () => {
+      try {
+        const res = await fetch(`./api/sync?pairId=${encodeURIComponent(pairId)}`);
+        if (res.ok) {
+          const data = await res.json();
+          if (data.success && data.pair && (data.pair.paired || (data.pair.user2 && data.pair.user2.joined))) {
+            clearInterval(waitingPollInterval);
+            waitingPollInterval = null;
+
+            // Partner has joined! Update local pair and reminders
+            const currentPair = window.storage.getPair() || {};
+            currentPair.user1 = data.pair.user1;
+            currentPair.user2 = data.pair.user2;
+            currentPair.paired = true;
+            window.storage.setPair(currentPair);
+            if (data.reminders) window.storage.setReminders(data.reminders);
+
+            // Populate success screen names and transition
+            const u1El = document.getElementById('connected-user1-pill');
+            const u2El = document.getElementById('connected-user2-pill');
+            if (u1El) u1El.innerText = data.pair.user1?.name || 'Viswa';
+            if (u2El) u2El.innerText = data.pair.user2?.name || 'Partner';
+            showOnboardingStep('onboard-step-success');
+          }
+        }
+      } catch (e) {
+        console.warn('Waiting partner polling check:', e);
+      }
+    }, 2000);
+  }
+
   // 1. Initial State Check
   const pair = window.storage.getPair();
   const onboardingEl = document.getElementById('onboarding-screen');
 
   if (!pair) {
-    if (onboardingEl) onboardingEl.style.display = 'flex';
+    if (onboardingEl) {
+      onboardingEl.style.display = 'flex';
+      // Check URL parameters (e.g. from invite link)
+      const urlParams = new URLSearchParams(window.location.search);
+      const paramPairCode = urlParams.get('pair');
+      if (paramPairCode) {
+        showOnboardingStep('onboard-step-join');
+        const inputCode = document.getElementById('onboard-join-code-input');
+        if (inputCode) inputCode.value = paramPairCode.toUpperCase().trim();
+      } else {
+        showOnboardingStep('onboard-step-welcome');
+      }
+    }
   } else {
     if (onboardingEl) onboardingEl.style.display = 'none';
     window.sync.startPolling();
@@ -47,18 +108,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
   });
 
-  // Check URL parameters (e.g. from notification click or share link)
   const urlParams = new URLSearchParams(window.location.search);
-  const paramPairCode = urlParams.get('pair');
-  if (paramPairCode && !pair) {
-    const joinTab = document.getElementById('tab-join-space');
-    const inputCode = document.getElementById('onboard-join-code');
-    if (joinTab && inputCode) {
-      joinTab.click();
-      inputCode.value = paramPairCode.toUpperCase();
-    }
-  }
-
   const paramReminderId = urlParams.get('reminderId');
   const paramAction = urlParams.get('action');
   if (paramReminderId) {
@@ -148,77 +198,149 @@ document.addEventListener('DOMContentLoaded', async () => {
   }
 
   function setupOnboardingEvents() {
-    const tabCreate = document.getElementById('tab-create-space');
-    const tabJoin = document.getElementById('tab-join-space');
-    const formCreate = document.getElementById('form-create-space');
-    const formJoin = document.getElementById('form-join-space');
-
-    tabCreate?.addEventListener('click', () => {
-      tabCreate.classList.add('active');
-      tabJoin.classList.remove('active');
-      formCreate.style.display = 'block';
-      formJoin.style.display = 'none';
+    // 1. Initial Choice: Create Space
+    document.getElementById('btn-choice-create')?.addEventListener('click', () => {
+      showOnboardingStep('onboard-step-create-name');
+      const nameInput = document.getElementById('onboard-create-name-input');
+      if (nameInput) {
+        nameInput.focus();
+      }
     });
 
-    tabJoin?.addEventListener('click', () => {
-      tabJoin.classList.add('active');
-      tabCreate.classList.remove('active');
-      formJoin.style.display = 'block';
-      formCreate.style.display = 'none';
+    // 1. Initial Choice: Join Space
+    document.getElementById('btn-choice-join')?.addEventListener('click', () => {
+      const errorBox = document.getElementById('join-error-box');
+      if (errorBox) errorBox.style.display = 'none';
+      showOnboardingStep('onboard-step-join');
+      const nameInput = document.getElementById('onboard-join-name-input');
+      if (nameInput) {
+        nameInput.focus();
+      }
     });
 
-    // Submit Create Space
-    document.getElementById('btn-onboard-create')?.addEventListener('click', async () => {
-      const userName = (document.getElementById('onboard-user-name').value || '').trim() || 'Viswa';
-      const partnerName = (document.getElementById('onboard-partner-name').value || '').trim() || 'Friend';
+    // Back buttons
+    document.getElementById('btn-back-from-create-name')?.addEventListener('click', () => {
+      showOnboardingStep('onboard-step-welcome');
+    });
 
-      const createBtn = document.getElementById('btn-onboard-create');
-      createBtn.innerText = 'Creating space...';
+    document.getElementById('btn-back-from-join')?.addEventListener('click', () => {
+      const errorBox = document.getElementById('join-error-box');
+      if (errorBox) errorBox.style.display = 'none';
+      showOnboardingStep('onboard-step-welcome');
+    });
+
+    // 2. Phone 1: Submit Create Space
+    document.getElementById('btn-submit-create-space')?.addEventListener('click', async () => {
+      const nameInput = document.getElementById('onboard-create-name-input');
+      const userName = (nameInput?.value || '').trim() || 'Viswa';
+
+      const createBtn = document.getElementById('btn-submit-create-space');
+      createBtn.innerHTML = '<span>Creating space...</span>';
       createBtn.disabled = true;
 
-      const newPair = await window.sync.createPair(userName, partnerName);
-      createBtn.innerText = 'Continue';
+      const newPair = await window.sync.createPair(userName, 'Partner');
+      createBtn.innerHTML = '<span>Create Space</span>';
       createBtn.disabled = false;
 
-      document.getElementById('onboarding-screen').style.display = 'none';
+      if (newPair && newPair.id) {
+        const bigCodeEl = document.getElementById('onboard-big-code');
+        if (bigCodeEl) bigCodeEl.innerText = newPair.id;
+
+        showOnboardingStep('onboard-step-create-waiting');
+        startWaitingForPartner(newPair.id);
+      }
+    });
+
+    // Phone 1 Waiting: Copy Code
+    document.getElementById('btn-onboard-copy-code')?.addEventListener('click', () => {
+      const code = document.getElementById('onboard-big-code')?.innerText || '';
+      if (code && code !== '------') {
+        navigator.clipboard.writeText(code);
+        window.ui.showToast(`Pair code copied: ${code} 📋`);
+      }
+    });
+
+    // Phone 1 Waiting: Share Link
+    document.getElementById('btn-onboard-share-code')?.addEventListener('click', () => {
+      const code = document.getElementById('onboard-big-code')?.innerText || '';
+      if (!code || code === '------') return;
+
+      const shareUrl = `${window.location.origin}${window.location.pathname}?pair=${code}`;
+      if (navigator.share) {
+        navigator.share({
+          title: 'Join my Duo reminder space',
+          text: `Join my Duo reminder space with code ${code} so we can stay accountable together!`,
+          url: shareUrl
+        }).catch(() => {});
+      } else {
+        navigator.clipboard.writeText(shareUrl);
+        window.ui.showToast('Invite link copied to clipboard! 🔗');
+      }
+    });
+
+    // 3. Phone 2: Submit Join Space
+    document.getElementById('btn-submit-join-space')?.addEventListener('click', async () => {
+      const nameInput = document.getElementById('onboard-join-name-input');
+      const codeInput = document.getElementById('onboard-join-code-input');
+      const errorBox = document.getElementById('join-error-box');
+      const errorText = document.getElementById('join-error-text');
+
+      const userName = (nameInput?.value || '').trim() || 'Partner';
+      const pairCode = (codeInput?.value || '').trim().toUpperCase();
+
+      if (!pairCode) {
+        if (errorBox && errorText) {
+          errorText.innerText = "Please enter the 6-character partner code.";
+          errorBox.style.display = 'flex';
+        }
+        return;
+      }
+
+      if (errorBox) errorBox.style.display = 'none';
+
+      const joinBtn = document.getElementById('btn-submit-join-space');
+      joinBtn.innerHTML = '<span>Connecting...</span>';
+      joinBtn.disabled = true;
+
+      const result = await window.sync.joinPair(pairCode, userName);
+      joinBtn.innerHTML = '<span>Join Space</span>';
+      joinBtn.disabled = false;
+
+      if (result.success && result.pair) {
+        const u1El = document.getElementById('connected-user1-pill');
+        const u2El = document.getElementById('connected-user2-pill');
+        if (u1El) u1El.innerText = result.pair.user1?.name || 'Viswa';
+        if (u2El) u2El.innerText = result.pair.user2?.name || userName;
+
+        showOnboardingStep('onboard-step-success');
+      } else {
+        if (errorBox && errorText) {
+          errorText.innerText = result.error || "That code doesn't match. Check the code on your partner's phone and try again.";
+          errorBox.style.display = 'flex';
+        }
+      }
+    });
+
+    // 4. Finish Onboarding & Enter App (Both Devices)
+    document.getElementById('btn-onboard-finish')?.addEventListener('click', () => {
+      if (waitingPollInterval) {
+        clearInterval(waitingPollInterval);
+        waitingPollInterval = null;
+      }
+
+      const onboardingEl = document.getElementById('onboarding-screen');
+      if (onboardingEl) onboardingEl.style.display = 'none';
+
       window.sync.startPolling();
-      window.ui.showToast(`Pair space created! Code: ${newPair.id}`);
       window.ui.render();
+      window.ui.showToast("Your reminder space is ready! 🎉");
 
       // Show gentle notification permission prompt
       setTimeout(() => {
         if (window.notifications.getPermissionState() === 'default') {
           window.ui.promptNotificationPermission();
         }
-      }, 1000);
-    });
-
-    // Submit Join Space
-    document.getElementById('btn-onboard-join')?.addEventListener('click', async () => {
-      const pairCode = (document.getElementById('onboard-join-code').value || '').trim();
-      const userName = (document.getElementById('onboard-join-user-name').value || '').trim() || 'Partner';
-
-      if (!pairCode) {
-        alert('Please enter your 6-character pair code');
-        return;
-      }
-
-      const joinBtn = document.getElementById('btn-onboard-join');
-      joinBtn.innerText = 'Connecting...';
-      joinBtn.disabled = true;
-
-      const result = await window.sync.joinPair(pairCode, userName);
-      joinBtn.innerText = 'Join Space';
-      joinBtn.disabled = false;
-
-      if (result.success) {
-        document.getElementById('onboarding-screen').style.display = 'none';
-        window.sync.startPolling();
-        window.ui.showToast(`Connected to pair space! 🎉`);
-        window.ui.render();
-      } else {
-        alert(result.error || 'Pair code not found. Please verify and try again.');
-      }
+      }, 800);
     });
   }
 

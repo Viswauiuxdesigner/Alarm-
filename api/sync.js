@@ -58,7 +58,8 @@ module.exports = async function handler(req, res) {
         const newPair = {
           id: pairId,
           user1: { id: user1Id, name: userName || 'Viswa' },
-          user2: { id: user2Id, name: partnerName || 'Partner' },
+          user2: { id: user2Id, name: partnerName || 'Partner', joined: false },
+          paired: false,
           createdAt: new Date().toISOString()
         };
 
@@ -101,14 +102,16 @@ module.exports = async function handler(req, res) {
         const data = await db.getPairData(pairId);
 
         if (!data) {
-          return res.status(404).json({ error: 'Pair code not found. Please check and try again.' });
+          return res.status(404).json({ error: "That code doesn't match. Check the code on your partner's phone and try again." });
         }
 
-        // Assign user 2 name if provided
+        // Assign user 2 name and mark paired
         if (userName) {
           data.pair.user2.name = userName;
-          await db.savePairData(pairId, data);
         }
+        data.pair.user2.joined = true;
+        data.pair.paired = true;
+        await db.savePairData(pairId, data);
 
         return res.status(200).json({
           success: true,

@@ -310,49 +310,178 @@
     </div>
 
     <!-- ==============================================
-         ONBOARDING SCREEN (First Launch)
+         ONBOARDING SCREEN (Role-based Guided Flow)
          ============================================== -->
     <div id="onboarding-screen" class="onboarding-screen" style="display:none;">
-      <div class="onboarding-header">
-        <div class="onboarding-icon">👋</div>
-        <h1>Welcome</h1>
-        <p>Create your reminder space for two</p>
+      
+      <!-- STEP 1: Welcome & Role Selection -->
+      <div id="onboard-step-welcome" class="onboard-step active">
+        <div class="onboarding-header">
+          <div class="onboarding-icon">🤝</div>
+          <h1>Two phones.<br>One reminder space.</h1>
+          <p>Connect with your partner to stay accountable together.</p>
+        </div>
 
-        <div class="onboarding-tabs">
-          <button class="onboarding-tab active" id="tab-create-space">Create New Space</button>
-          <button class="onboarding-tab" id="tab-join-space">Join with Code</button>
+        <div class="onboard-action-cards">
+          <button class="onboard-choice-card primary" id="btn-choice-create" type="button">
+            <div class="choice-card-icon">✨</div>
+            <div class="choice-card-content">
+              <div class="choice-card-title">Create a Space</div>
+              <div class="choice-card-desc">Start a new space and get a pairing code for your partner</div>
+            </div>
+            <div class="choice-card-arrow">→</div>
+          </button>
+
+          <button class="onboard-choice-card" id="btn-choice-join" type="button">
+            <div class="choice-card-icon">🔗</div>
+            <div class="choice-card-content">
+              <div class="choice-card-title">Join a Space</div>
+              <div class="choice-card-desc">Enter the 6-character code shared by your partner</div>
+            </div>
+            <div class="choice-card-arrow">→</div>
+          </button>
+        </div>
+
+        <div class="onboard-footer">
+          Duo • 2-Person Shared Accountability
         </div>
       </div>
 
-      <!-- Create Space Form (Device A) -->
-      <div id="form-create-space">
-        <div class="form-group">
-          <label class="form-label">Your Name</label>
-          <input type="text" class="form-input" id="onboard-user-name" placeholder="e.g. Viswa" value="Viswa" />
+      <!-- STEP 2: Phone 1 — Enter Name -->
+      <div id="onboard-step-create-name" class="onboard-step" style="display:none;">
+        <div class="onboard-top-bar">
+          <button class="onboard-back-btn" id="btn-back-from-create-name" type="button">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+            <span>Back</span>
+          </button>
         </div>
-        <div class="form-group">
-          <label class="form-label">Partner's Name</label>
-          <input type="text" class="form-input" id="onboard-partner-name" placeholder="e.g. Friend" value="Friend" />
+
+        <div class="onboarding-header">
+          <div class="onboarding-icon">✨</div>
+          <h1>Let's set up your reminder space</h1>
+          <p>First, enter your name</p>
         </div>
-        <button class="btn-primary" id="btn-onboard-create">Continue</button>
+
+        <div class="onboard-form-body">
+          <div class="form-group">
+            <label class="form-label" for="onboard-create-name-input">Your Name</label>
+            <input type="text" class="form-input" id="onboard-create-name-input" placeholder="e.g. Viswa" maxlength="30" autocomplete="name" />
+          </div>
+
+          <button class="btn-primary" id="btn-submit-create-space" type="button">
+            <span>Create Space</span>
+          </button>
+        </div>
+
+        <div class="onboard-footer">
+          Duo • 2-Person Shared Accountability
+        </div>
       </div>
 
-      <!-- Join Space Form (Device B) -->
-      <div id="form-join-space" style="display:none;">
-        <div class="form-group">
-          <label class="form-label">6-Character Pair Code</label>
-          <input type="text" class="form-input" id="onboard-join-code" placeholder="e.g. DUO492" maxlength="8" style="text-transform: uppercase; font-family: monospace; font-size: 1.15rem; letter-spacing: 0.1em; text-align: center;" />
+      <!-- STEP 3: Phone 1 — Dedicated Pairing & Waiting Screen -->
+      <div id="onboard-step-create-waiting" class="onboard-step" style="display:none;">
+        <div class="onboarding-header">
+          <div class="onboarding-icon" style="background: rgba(16, 185, 129, 0.12); color: #10B981;">🎉</div>
+          <h1>Your space is ready!</h1>
+          <p>Share this code with your partner</p>
         </div>
-        <div class="form-group">
-          <label class="form-label">Your Name</label>
-          <input type="text" class="form-input" id="onboard-join-user-name" placeholder="e.g. Friend" value="Friend" />
+
+        <div class="pairing-code-container">
+          <div class="pairing-code-label">PAIRING CODE</div>
+          <div class="big-pair-code" id="onboard-big-code">------</div>
+          <div class="pairing-code-actions">
+            <button class="btn-code-action" id="btn-onboard-copy-code" type="button">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+              <span>Copy Code</span>
+            </button>
+            <button class="btn-code-action primary" id="btn-onboard-share-code" type="button">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="18" cy="5" r="3"></circle><circle cx="6" cy="12" r="3"></circle><circle cx="18" cy="19" r="3"></circle><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"></line><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line></svg>
+              <span>Share Link</span>
+            </button>
+          </div>
         </div>
-        <button class="btn-primary" id="btn-onboard-join">Join Space</button>
+
+        <div class="pairing-helper-card">
+          <p class="pairing-helper-text">
+            Open this app on your partner's phone and enter this code to connect.
+          </p>
+          <div class="waiting-partner-badge">
+            <span class="pulse-dot"></span>
+            <span id="waiting-status-text">Waiting for your partner to join...</span>
+          </div>
+        </div>
+
+        <div class="onboard-footer">
+          Keep this screen open while your partner connects
+        </div>
       </div>
 
-      <div style="text-align: center; font-size: 0.75rem; color: var(--text-muted); margin-top: 20px;">
-        Duo • 2-Person Shared Accountability
+      <!-- STEP 4: Phone 2 — Join Space -->
+      <div id="onboard-step-join" class="onboard-step" style="display:none;">
+        <div class="onboard-top-bar">
+          <button class="onboard-back-btn" id="btn-back-from-join" type="button">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+            <span>Back</span>
+          </button>
+        </div>
+
+        <div class="onboarding-header">
+          <div class="onboarding-icon">🔗</div>
+          <h1>Join a Reminder Space</h1>
+          <p>Enter your name and the code shared by your partner.</p>
+        </div>
+
+        <div class="onboard-form-body">
+          <div id="join-error-box" class="onboard-error-box" style="display:none;">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
+            <span id="join-error-text">That code doesn't match. Check the code on your partner's phone and try again.</span>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="onboard-join-name-input">Your Name</label>
+            <input type="text" class="form-input" id="onboard-join-name-input" placeholder="e.g. Alex" maxlength="30" autocomplete="name" />
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="onboard-join-code-input">Partner Code</label>
+            <input type="text" class="form-input code-input" id="onboard-join-code-input" placeholder="ABC123" maxlength="8" autocomplete="off" autocorrect="off" autocapitalize="characters" spellcheck="false" />
+          </div>
+
+          <button class="btn-primary" id="btn-submit-join-space" type="button">
+            <span>Join Space</span>
+          </button>
+        </div>
+
+        <div class="onboard-footer">
+          Duo • 2-Person Shared Accountability
+        </div>
       </div>
+
+      <!-- STEP 5: Success State (Both Phones) -->
+      <div id="onboard-step-success" class="onboard-step" style="display:none;">
+        <div class="onboarding-header">
+          <div class="onboarding-icon" style="background: rgba(16, 185, 129, 0.15); font-size: 2.8rem;">🎉</div>
+          <h1>You're connected! 🎉</h1>
+          <p>Your reminder space is ready for both of you.</p>
+        </div>
+
+        <div class="connected-pair-card">
+          <div class="connected-user-pill" id="connected-user1-pill">User 1</div>
+          <div class="connected-divider">🤝</div>
+          <div class="connected-user-pill" id="connected-user2-pill">User 2</div>
+        </div>
+
+        <div class="onboard-form-body">
+          <button class="btn-primary" id="btn-onboard-finish" type="button">
+            <span>Open Today's Schedule</span>
+          </button>
+        </div>
+
+        <div class="onboard-footer">
+          Duo • Ready for accountability
+        </div>
+      </div>
+
     </div>
 
   </div>

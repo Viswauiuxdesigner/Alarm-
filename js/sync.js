@@ -60,14 +60,19 @@ class SyncEngine {
 
   // Create a new pairing space on backend
   async createPair(userName, partnerName) {
-    const defaultPairId = 'DUO' + Math.floor(1000 + Math.random() * 9000);
-    const user1 = { id: 'u_1', name: userName || 'Viswa' };
-    const user2 = { id: 'u_2', name: partnerName || 'Friend' };
+    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+    let defaultPairId = '';
+    for (let i = 0; i < 6; i++) {
+      defaultPairId += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    const user1 = { id: 'u_' + Math.random().toString(36).substring(2, 9), name: userName || 'Viswa' };
+    const user2 = { id: 'u_' + Math.random().toString(36).substring(2, 9), name: partnerName || 'Partner', joined: false };
 
     const pair = {
       id: defaultPairId,
       user1,
       user2,
+      paired: false,
       createdAt: new Date().toISOString()
     };
 
@@ -78,16 +83,6 @@ class SyncEngine {
         title: 'Walking',
         icon: '🚶',
         time: '06:00',
-        repeat: window.CONFIG.REPEAT.DAILY,
-        active: true,
-        createdAt: new Date().toISOString()
-      },
-      {
-        id: 'rem_' + Math.random().toString(36).substring(2, 9),
-        pairId: pair.id,
-        title: 'Workout',
-        icon: '💪',
-        time: '19:00',
         repeat: window.CONFIG.REPEAT.DAILY,
         active: true,
         createdAt: new Date().toISOString()
@@ -132,6 +127,10 @@ class SyncEngine {
   // Join an existing pairing space from Device B
   async joinPair(pairCode, userName) {
     const code = (pairCode || '').trim().toUpperCase();
+    if (!code) {
+      return { success: false, error: "Please enter your partner's 6-character code." };
+    }
+
     try {
       const res = await fetch(this.apiBase, {
         method: 'POST',
@@ -143,22 +142,26 @@ class SyncEngine {
         })
       });
 
-      if (res.ok) {
-        const data = await res.json();
-        if (data.success && data.pair) {
-          window.storage.setPair(data.pair);
-          // Set this device's user as User 2
-          window.storage.setCurrentUser(data.currentUser || data.pair.user2);
-          window.storage.setReminders(data.reminders || []);
-          window.storage.setResponses(data.responses || []);
-          this.broadcast('SYNC_UPDATE', { reminders: data.reminders, responses: data.responses, pair: data.pair });
-          return { success: true, pair: data.pair };
-        }
+      const data = await res.json().catch(() => ({}));
+      if (res.ok && data.success && data.pair) {
+        window.storage.setPair(data.pair);
+        // Set this device's user as User 2
+        window.storage.setCurrentUser(data.currentUser || data.pair.user2);
+        window.storage.setReminders(data.reminders || []);
+        window.storage.setResponses(data.responses || []);
+        this.broadcast('SYNC_UPDATE', { reminders: data.reminders, responses: data.responses, pair: data.pair });
+        return { success: true, pair: data.pair };
       }
-      return { success: false, error: 'Pair code not found. Please verify the code.' };
+      return {
+        success: false,
+        error: data.error || "That code doesn't match. Check the code on your partner's phone and try again."
+      };
     } catch (e) {
       console.warn('Join pair offline error:', e);
-      return { success: false, error: 'Could not connect to server. Please check your network connection.' };
+      return {
+        success: false,
+        error: "That code doesn't match. Check the code on your partner's phone and try again."
+      };
     }
   }
 
@@ -326,11 +329,14 @@ class SyncEngine {
           if (data.reminders) window.storage.setReminders(data.reminders);
           if (data.responses) window.storage.setResponses(data.responses);
           if (data.pair) {
-            // Merge pair names without changing current user identity
+            // Merge pair names and paired status without changing current user identity
             const currentPair = window.storage.getPair();
             if (currentPair) {
               currentPair.user1 = data.pair.user1;
               currentPair.user2 = data.pair.user2;
+              if (typeof data.pair.paired !== 'undefined') {
+                currentPair.paired = data.pair.paired;
+              }
               window.storage.setPair(currentPair);
             }
           }

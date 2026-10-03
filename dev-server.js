@@ -187,7 +187,8 @@ async function handleApi(req, res, parsedUrl) {
             const newPair = {
               id: pairId,
               user1: { id: user1Id, name: userName || 'Viswa' },
-              user2: { id: user2Id, name: partnerName || 'Friend' },
+              user2: { id: user2Id, name: partnerName || 'Partner', joined: false },
+              paired: false,
               createdAt: new Date().toISOString()
             };
 
@@ -228,14 +229,15 @@ async function handleApi(req, res, parsedUrl) {
 
             if (!pair) {
               res.writeHead(404);
-              return res.end(JSON.stringify({ error: 'Pair code not found' }));
+              return res.end(JSON.stringify({ error: "That code doesn't match. Check the code on your partner's phone and try again." }));
             }
 
             if (userName) {
               pair.user2.name = userName;
-              store.pairs[pairId] = pair;
-              saveStore(store);
             }
+            pair.user2.joined = true;
+            pair.paired = true;
+            saveStore(store);
 
             res.writeHead(200);
             return res.end(JSON.stringify({
