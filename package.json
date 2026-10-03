@@ -3,13 +3,9 @@
   "version": "1.0.0",
   "description": "Simple Two-Person Accountability & Reminder PWA",
   "scripts": {
-    "build": "echo 'Static assets ready'",
     "start": "node dev-server.js",
     "dev": "node dev-server.js",
     "generate-vapid": "node -e \"const wp=require('web-push'); const v=wp.generateVAPIDKeys(); console.log('VAPID_PUBLIC_KEY=' + v.publicKey); console.log('VAPID_PRIVATE_KEY=' + v.privateKey);\""
-  },
-  "engines": {
-    "node": "22.x"
   },
   "dependencies": {
     "web-push": "^3.6.7"
