@@ -1,13 +1,18 @@
 {
   "name": "two-person-reminder-pwa",
   "version": "1.0.0",
-  "description": "Simple Two-Person Accountability & Reminder PWA",
+  "description": "Simple Two-Person Accountability & Reminder PWA with Native Android Alarm Subsystem",
   "scripts": {
     "start": "node dev-server.js",
     "dev": "node dev-server.js",
-    "generate-vapid": "node -e \"const wp=require('web-push'); const v=wp.generateVAPIDKeys(); console.log('VAPID_PUBLIC_KEY=' + v.publicKey); console.log('VAPID_PRIVATE_KEY=' + v.privateKey);\""
+    "generate-vapid": "node -e \"const wp=require('web-push'); const v=wp.generateVAPIDKeys(); console.log('VAPID_PUBLIC_KEY=' + v.publicKey); console.log('VAPID_PRIVATE_KEY=' + v.privateKey);\"",
+    "cap:sync": "cap sync",
+    "cap:open:android": "cap open android"
   },
   "dependencies": {
+    "@capacitor/android": "^5.7.0",
+    "@capacitor/cli": "^5.7.0",
+    "@capacitor/core": "^5.7.0",
     "web-push": "^3.6.7"
   },
   "keywords": [
@@ -15,7 +20,9 @@
     "reminder",
     "accountability",
     "two-person",
-    "web-push"
+    "web-push",
+    "capacitor",
+    "android-alarm"
   ],
   "author": "",
   "license": "MIT"

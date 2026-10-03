@@ -8,6 +8,7 @@ const ASSETS_TO_CACHE = [
   './js/config.js',
   './js/storage.js',
   './js/sound.js',
+  './js/native-alarm.js',
   './js/notifications.js',
   './js/sync.js',
   './js/reminders.js',

@@ -44,8 +44,19 @@ class SyncEngine {
 
     if (msg.type === 'SYNC_UPDATE') {
       const { reminders, responses, pair } = msg.payload;
-      if (reminders) window.storage.setReminders(reminders);
-      if (responses) window.storage.setResponses(responses);
+      if (reminders) {
+        window.storage.setReminders(reminders);
+        window.nativeAlarm?.syncReminders(reminders);
+      }
+      if (responses) {
+        window.storage.setResponses(responses);
+        // Check if any response stops an active alarm
+        responses.forEach(r => {
+          if (r.status === 'going' || r.status === 'skipped' || r.status === 'snoozed') {
+            window.nativeAlarm?.stopAlarm(r.reminderId);
+          }
+        });
+      }
       if (pair) {
         const currentPair = window.storage.getPair();
         if (currentPair) {
