@@ -1,0 +1,21 @@
+# Environment variables and secrets
+.env
+.env.local
+.env.*.local
+*.env
+
+# Local data and store
+data/
+*.log
+
+# Dependencies
+node_modules/
+package-lock.json
+
+# Vercel build output
+.vercel
+
+# Operating System Files
+.DS_Store
+Thumbs.db
+Desktop.ini

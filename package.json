@@ -1,0 +1,23 @@
+{
+  "name": "two-person-reminder-pwa",
+  "version": "1.0.0",
+  "description": "Simple Two-Person Accountability & Reminder PWA",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js",
+    "generate-vapid": "node -e \"const wp=require('web-push'); const v=wp.generateVAPIDKeys(); console.log('VAPID_PUBLIC_KEY=' + v.publicKey); console.log('VAPID_PRIVATE_KEY=' + v.privateKey);\""
+  },
+  "dependencies": {
+    "web-push": "^3.6.7"
+  },
+  "keywords": [
+    "pwa",
+    "reminder",
+    "accountability",
+    "two-person",
+    "web-push"
+  ],
+  "author": "",
+  "license": "MIT"
+}
