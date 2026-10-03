@@ -43,10 +43,10 @@ Duo answers three questions immediately:
 
 ### Option 1: Run with Node.js
 ```bash
-# Start local server (Static files + API + JSON file persistence)
+# Start local development server (Static files + API + JSON file persistence)
 npm start
 # or
-node server.js
+node dev-server.js
 ```
 
 ### Option 2: Run with PowerShell (Windows native, zero external runtimes)
