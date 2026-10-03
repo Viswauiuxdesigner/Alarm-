@@ -140,10 +140,11 @@ self.addEventListener('push', (event) => {
     body: displayBody,
     icon: data.icon || './assets/icons/icon-192.png',
     badge: data.badge || './assets/icons/icon-192.png',
-    vibrate: [200, 100, 200, 100, 200],
+    vibrate: [500, 200, 500, 200, 500, 200, 800, 200, 800],
     tag: `reminder-${reminderId}`,
     renotify: true,
     requireInteraction: true,
+    timestamp: Date.now(),
     data: {
       type: 'reminder',
       reminderId: reminderId,

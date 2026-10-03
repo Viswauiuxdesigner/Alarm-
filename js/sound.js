@@ -1,8 +1,10 @@
-// Duo Web Audio Sound Synthesizer
-// Clean, gentle, high-fidelity chimes without external audio dependencies.
+// Duo Web Audio Sound Synthesizer & Alarm Engine
+// High-fidelity synthesized alarm melodies and audio feedback without external audio files.
 class SoundEngine {
   constructor() {
     this.audioCtx = null;
+    this.alarmInterval = null;
+    this.isAlarmPlaying = false;
   }
 
   init() {
@@ -36,8 +38,45 @@ class SoundEngine {
     }
   }
 
+  // Start continuous repeating alarm melody (for active/foreground app window)
+  startAlarmLoop() {
+    if (this.isAlarmPlaying) return;
+    this.isAlarmPlaying = true;
+    this.playReminderChime();
+
+    if ('vibrate' in navigator) {
+      try {
+        navigator.vibrate([500, 200, 500, 200, 500]);
+      } catch (e) {}
+    }
+
+    this.alarmInterval = setInterval(() => {
+      this.playReminderChime();
+      if ('vibrate' in navigator) {
+        try {
+          navigator.vibrate([500, 200, 500, 200, 500]);
+        } catch (e) {}
+      }
+    }, 2500);
+  }
+
+  // Stop the continuous repeating alarm melody
+  stopAlarmLoop() {
+    this.isAlarmPlaying = false;
+    if (this.alarmInterval) {
+      clearInterval(this.alarmInterval);
+      this.alarmInterval = null;
+    }
+    if ('vibrate' in navigator) {
+      try {
+        navigator.vibrate(0);
+      } catch (e) {}
+    }
+  }
+
   // Play a gentle subtle click/tap feedback
   playSuccessSound() {
+    this.stopAlarmLoop();
     try {
       this.init();
       if (!this.audioCtx) return;

@@ -378,6 +378,9 @@ class UIManager {
   closeModal(modalId) {
     const modal = document.getElementById(modalId);
     if (modal) modal.classList.remove('active');
+    if (modalId === 'modal-reminder-response') {
+      window.sound.stopAlarmLoop();
+    }
   }
 
   renderActivityPicker(selectedTitle = 'Walking') {
@@ -449,10 +452,12 @@ class UIManager {
     if (heroSubtitle) heroSubtitle.innerText = `It's time for your ${reminder.title.toLowerCase()} reminder.`;
 
     modal.classList.add('active');
+    window.sound.startAlarmLoop();
   }
 
   // Submit Active Response
   async handleResponseAction(action) {
+    window.sound.stopAlarmLoop();
     if (!this.activeReminderForResponse) return;
     const reminder = this.activeReminderForResponse;
     const currentUser = window.storage.getCurrentUser();
