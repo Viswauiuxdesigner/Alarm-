@@ -39,19 +39,11 @@
       <div class="greeting-block">
         <h1 id="header-greeting">Good Morning, Viswa 👋</h1>
         <div style="display: flex; align-items: center; gap: 8px; margin-top: 2px;">
-          <p id="header-date" style="margin-top:0;">Today</p>
+          <p id="header-partner-status" style="margin-top:0; font-size: 0.82rem; font-weight: 600; color: var(--text-secondary);">Connected with Friend</p>
           <span style="font-size: 0.72rem; font-weight: 600;" id="network-status-badge"></span>
         </div>
       </div>
-      <div class="header-actions">
-        <div class="pair-pill" id="header-pair-pill" title="Pair Space Code">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
-            <circle cx="9" cy="7" r="4"></circle>
-          </svg>
-          <span id="header-pair-code">SYNC</span>
-        </div>
-      </div>
+      <div class="header-actions"></div>
     </header>
 
     <!-- Main Viewport (Scrollable Content) -->
@@ -91,25 +83,7 @@
            ============================================== -->
       <section id="view-settings" class="view-section">
         <div class="section-header">
-          <span class="section-title">Settings & Pair Space</span>
-        </div>
-
-        <!-- Space Pairing Card -->
-        <div class="settings-section">
-          <div class="settings-section-title">Shared Pair Space</div>
-          <div class="pair-code-box">
-            <div>
-              <div style="font-size: 0.72rem; color: var(--primary); font-weight: 700; text-transform: uppercase;">Pair Code</div>
-              <div class="pair-code-display" id="settings-pair-code">------</div>
-            </div>
-            <div style="display: flex; gap: 6px;">
-              <button class="btn-copy" id="btn-copy-code">Copy Code</button>
-              <button class="btn-copy" id="btn-share-pair" style="background: #10B981;">Share Link</button>
-            </div>
-          </div>
-          <p style="padding: 0 18px 14px 18px; font-size: 0.78rem; color: var(--text-secondary); line-height: 1.4;">
-            Send this 6-character code or invite link to your partner. When they enter it on their device, both phones connect to this shared space in real-time.
-          </p>
+          <span class="section-title">Settings</span>
         </div>
 
         <!-- Profile Section -->
@@ -157,15 +131,15 @@
           </div>
         </div>
 
-        <!-- Danger Zone -->
+        <!-- Session Management -->
         <div class="settings-section">
-          <div class="settings-section-title">Space Management</div>
+          <div class="settings-section-title">Device Session</div>
           <div class="settings-item">
             <div class="settings-item-label">
-              <span style="color: var(--danger);">Reset / Leave Space</span>
-              <span class="settings-item-subtext">Clear local cache and start fresh</span>
+              <span style="color: var(--danger); font-weight: 700;">Deactivate this device</span>
+              <span class="settings-item-subtext">Log out of this shared reminder space</span>
             </div>
-            <button class="user-bar-btn" id="btn-reset-space" style="color: var(--danger); border-color: var(--danger-border);">Reset</button>
+            <button class="user-bar-btn" id="btn-open-deactivate" style="color: var(--danger); border-color: var(--danger-border); font-weight: 700;">Deactivate</button>
           </div>
         </div>
       </section>
@@ -310,36 +284,65 @@
     </div>
 
     <!-- ==============================================
+         MODAL 4: DEACTIVATE CONFIRMATION MODAL
+         ============================================== -->
+    <div id="modal-deactivate-confirm" class="modal-overlay">
+      <div class="bottom-sheet">
+        <div class="sheet-handle"></div>
+        <div class="response-card-hero">
+          <div class="response-hero-emoji">📱</div>
+          <h2 class="response-hero-title">Deactivate this device?</h2>
+          <p class="response-hero-subtitle" style="max-width: 290px; margin: 8px auto 0 auto; line-height: 1.45;">
+            You will need the pairing code to connect this device again. Your partner's reminders will remain safe.
+          </p>
+        </div>
+        <button class="btn-secondary" id="btn-cancel-deactivate" style="margin-bottom: 8px;" type="button">Cancel</button>
+        <button class="btn-primary" id="btn-confirm-deactivate" style="background: #DC2626; box-shadow: 0 4px 12px rgba(220, 38, 38, 0.25);" type="button">Deactivate</button>
+      </div>
+    </div>
+
+    <!-- ==============================================
          ONBOARDING SCREEN (Role-based Guided Flow)
          ============================================== -->
     <div id="onboarding-screen" class="onboarding-screen" style="display:none;">
       
-      <!-- STEP 1: Welcome & Role Selection -->
+      <!-- STEP 1: First-time / Logged-out Screen -->
       <div id="onboard-step-welcome" class="onboard-step active">
         <div class="onboarding-header">
           <div class="onboarding-icon">🤝</div>
-          <h1>Two phones.<br>One reminder space.</h1>
-          <p>Connect with your partner to stay accountable together.</p>
+          <h1 id="onboard-main-title">Two phones.<br>One reminder space.</h1>
+          <p id="onboard-main-subtitle">Connect with your partner to manage reminders together.</p>
         </div>
 
-        <div class="onboard-action-cards">
-          <button class="onboard-choice-card primary" id="btn-choice-create" type="button">
-            <div class="choice-card-icon">✨</div>
-            <div class="choice-card-content">
-              <div class="choice-card-title">Create a Space</div>
-              <div class="choice-card-desc">Start a new space and get a pairing code for your partner</div>
-            </div>
-            <div class="choice-card-arrow">→</div>
-          </button>
+        <div class="onboard-form-body">
+          <div id="onboard-welcome-error" class="onboard-error-box" style="display:none;">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
+            <span id="onboard-welcome-error-text">Please enter both your name and your partner's name.</span>
+          </div>
 
-          <button class="onboard-choice-card" id="btn-choice-join" type="button">
-            <div class="choice-card-icon">🔗</div>
-            <div class="choice-card-content">
-              <div class="choice-card-title">Join a Space</div>
-              <div class="choice-card-desc">Enter the 6-character code shared by your partner</div>
+          <div class="form-group">
+            <label class="form-label" for="onboard-user-name">Your Name</label>
+            <input type="text" class="form-input" id="onboard-user-name" placeholder="Enter your name" maxlength="30" autocomplete="name" />
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="onboard-partner-name">Partner's Name</label>
+            <input type="text" class="form-input" id="onboard-partner-name" placeholder="Enter your partner's name" maxlength="30" autocomplete="name" />
+          </div>
+
+          <div class="onboard-action-stack">
+            <button class="btn-primary" id="btn-generate-code" type="button">
+              <span>Generate New Code</span>
+            </button>
+
+            <div class="onboard-or-divider">
+              <span>or</span>
             </div>
-            <div class="choice-card-arrow">→</div>
-          </button>
+
+            <button class="btn-secondary-action" id="btn-enter-existing-code" type="button">
+              <span>Enter Existing Code</span>
+            </button>
+          </div>
         </div>
 
         <div class="onboard-footer">
@@ -347,67 +350,40 @@
         </div>
       </div>
 
-      <!-- STEP 2: Phone 1 — Enter Name -->
-      <div id="onboard-step-create-name" class="onboard-step" style="display:none;">
+      <!-- STEP 2: Dedicated Pairing Waiting Screen (Creator) -->
+      <div id="onboard-step-waiting" class="onboard-step" style="display:none;">
         <div class="onboard-top-bar">
-          <button class="onboard-back-btn" id="btn-back-from-create-name" type="button">
+          <button class="onboard-back-btn" id="btn-back-from-waiting" type="button">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
             <span>Back</span>
           </button>
         </div>
 
         <div class="onboarding-header">
-          <div class="onboarding-icon">✨</div>
-          <h1>Let's set up your reminder space</h1>
-          <p>First, enter your name</p>
-        </div>
-
-        <div class="onboard-form-body">
-          <div class="form-group">
-            <label class="form-label" for="onboard-create-name-input">Your Name</label>
-            <input type="text" class="form-input" id="onboard-create-name-input" placeholder="e.g. Viswa" maxlength="30" autocomplete="name" />
-          </div>
-
-          <button class="btn-primary" id="btn-submit-create-space" type="button">
-            <span>Create Space</span>
-          </button>
-        </div>
-
-        <div class="onboard-footer">
-          Duo • 2-Person Shared Accountability
-        </div>
-      </div>
-
-      <!-- STEP 3: Phone 1 — Dedicated Pairing & Waiting Screen -->
-      <div id="onboard-step-create-waiting" class="onboard-step" style="display:none;">
-        <div class="onboarding-header">
           <div class="onboarding-icon" style="background: rgba(16, 185, 129, 0.12); color: #10B981;">🎉</div>
-          <h1>Your space is ready!</h1>
-          <p>Share this code with your partner</p>
+          <h1>Your pairing code</h1>
+          <p>Share this code with your partner.<br>Your partner should enter this code on their phone.</p>
         </div>
 
         <div class="pairing-code-container">
           <div class="pairing-code-label">PAIRING CODE</div>
-          <div class="big-pair-code" id="onboard-big-code">------</div>
+          <div class="big-pair-code" id="onboard-waiting-code">------</div>
           <div class="pairing-code-actions">
-            <button class="btn-code-action" id="btn-onboard-copy-code" type="button">
+            <button class="btn-code-action" id="btn-waiting-copy" type="button">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
               <span>Copy Code</span>
             </button>
-            <button class="btn-code-action primary" id="btn-onboard-share-code" type="button">
+            <button class="btn-code-action primary" id="btn-waiting-share" type="button">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="18" cy="5" r="3"></circle><circle cx="6" cy="12" r="3"></circle><circle cx="18" cy="19" r="3"></circle><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"></line><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line></svg>
-              <span>Share Link</span>
+              <span>Share Code</span>
             </button>
           </div>
         </div>
 
         <div class="pairing-helper-card">
-          <p class="pairing-helper-text">
-            Open this app on your partner's phone and enter this code to connect.
-          </p>
           <div class="waiting-partner-badge">
             <span class="pulse-dot"></span>
-            <span id="waiting-status-text">Waiting for your partner to join...</span>
+            <span id="waiting-partner-status">Waiting for your partner to join...</span>
           </div>
         </div>
 
@@ -416,10 +392,10 @@
         </div>
       </div>
 
-      <!-- STEP 4: Phone 2 — Join Space -->
-      <div id="onboard-step-join" class="onboard-step" style="display:none;">
+      <!-- STEP 3: Enter Existing Code Screen -->
+      <div id="onboard-step-enter-code" class="onboard-step" style="display:none;">
         <div class="onboard-top-bar">
-          <button class="onboard-back-btn" id="btn-back-from-join" type="button">
+          <button class="onboard-back-btn" id="btn-back-from-enter-code" type="button">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
             <span>Back</span>
           </button>
@@ -427,28 +403,23 @@
 
         <div class="onboarding-header">
           <div class="onboarding-icon">🔗</div>
-          <h1>Join a Reminder Space</h1>
-          <p>Enter your name and the code shared by your partner.</p>
+          <h1>Enter your partner's code</h1>
+          <p>Enter the 6-character code from your partner's phone.</p>
         </div>
 
         <div class="onboard-form-body">
           <div id="join-error-box" class="onboard-error-box" style="display:none;">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
-            <span id="join-error-text">That code doesn't match. Check the code on your partner's phone and try again.</span>
+            <span id="join-error-text">That code doesn't match. Check your partner's code and try again.</span>
           </div>
 
           <div class="form-group">
-            <label class="form-label" for="onboard-join-name-input">Your Name</label>
-            <input type="text" class="form-input" id="onboard-join-name-input" placeholder="e.g. Alex" maxlength="30" autocomplete="name" />
+            <label class="form-label" for="onboard-existing-code-input">Partner Code</label>
+            <input type="text" class="form-input code-input" id="onboard-existing-code-input" placeholder="ABC123" maxlength="8" autocomplete="off" autocorrect="off" autocapitalize="characters" spellcheck="false" />
           </div>
 
-          <div class="form-group">
-            <label class="form-label" for="onboard-join-code-input">Partner Code</label>
-            <input type="text" class="form-input code-input" id="onboard-join-code-input" placeholder="ABC123" maxlength="8" autocomplete="off" autocorrect="off" autocapitalize="characters" spellcheck="false" />
-          </div>
-
-          <button class="btn-primary" id="btn-submit-join-space" type="button">
-            <span>Join Space</span>
+          <button class="btn-primary" id="btn-submit-connect-code" type="button">
+            <span>Connect</span>
           </button>
         </div>
 
@@ -457,7 +428,7 @@
         </div>
       </div>
 
-      <!-- STEP 5: Success State (Both Phones) -->
+      <!-- STEP 4: Success State (Both Phones) -->
       <div id="onboard-step-success" class="onboard-step" style="display:none;">
         <div class="onboarding-header">
           <div class="onboarding-icon" style="background: rgba(16, 185, 129, 0.15); font-size: 2.8rem;">🎉</div>
@@ -473,7 +444,7 @@
 
         <div class="onboard-form-body">
           <button class="btn-primary" id="btn-onboard-finish" type="button">
-            <span>Open Today's Schedule</span>
+            <span>Open Today</span>
           </button>
         </div>
 

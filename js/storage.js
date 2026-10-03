@@ -6,6 +6,41 @@ class AppStorage {
   }
 
   // ==========================================
+  // Session & Active Pairing State
+  // ==========================================
+
+  hasActiveSession() {
+    try {
+      const active = localStorage.getItem(this.keys.ACTIVE_SESSION);
+      const pair = this.getPair();
+      return active === 'true' && !!pair && !!pair.id;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  setActiveSession(active) {
+    try {
+      localStorage.setItem(this.keys.ACTIVE_SESSION, active ? 'true' : 'false');
+    } catch (e) {
+      console.error('Storage setActiveSession error:', e);
+    }
+  }
+
+  deactivateDevice() {
+    try {
+      localStorage.setItem(this.keys.ACTIVE_SESSION, 'false');
+      localStorage.removeItem(this.keys.PAIR);
+      localStorage.removeItem(this.keys.USER);
+      localStorage.removeItem(this.keys.REMINDERS);
+      localStorage.removeItem(this.keys.RESPONSES);
+      localStorage.removeItem(this.offlineQueueKey);
+    } catch (e) {
+      console.error('Storage deactivateDevice error:', e);
+    }
+  }
+
+  // ==========================================
   // Shared Data (Cached locally from backend)
   // ==========================================
 

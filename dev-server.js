@@ -221,21 +221,30 @@ async function handleApi(req, res, parsedUrl) {
             }));
           }
 
-          // ACTION: Join Pair
+          // ACTION: Join / Reconnect Pair
           if (action === 'join_pair') {
-            const { pairCode, userName } = body;
+            const { pairCode, userName, partnerName } = body;
             const pairId = (pairCode || '').trim().toUpperCase();
             const pair = store.pairs[pairId];
 
             if (!pair) {
               res.writeHead(404);
-              return res.end(JSON.stringify({ error: "That code doesn't match. Check the code on your partner's phone and try again." }));
+              return res.end(JSON.stringify({ error: "That code doesn't match. Check your partner's code and try again." }));
             }
 
-            if (userName) {
-              pair.user2.name = userName;
+            let currentUser = pair.user2;
+            const cleanUserName = (userName || '').trim();
+
+            if (cleanUserName && pair.user1 && pair.user1.name.toLowerCase() === cleanUserName.toLowerCase()) {
+              currentUser = pair.user1;
+            } else {
+              if (cleanUserName) {
+                pair.user2.name = cleanUserName;
+              }
+              pair.user2.joined = true;
+              currentUser = pair.user2;
             }
-            pair.user2.joined = true;
+
             pair.paired = true;
             saveStore(store);
 
@@ -243,7 +252,7 @@ async function handleApi(req, res, parsedUrl) {
             return res.end(JSON.stringify({
               success: true,
               pair,
-              currentUser: pair.user2,
+              currentUser,
               reminders: store.reminders[pairId] || [],
               responses: store.responses[pairId] || []
             }));

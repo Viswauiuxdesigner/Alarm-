@@ -65,8 +65,8 @@ class SyncEngine {
     for (let i = 0; i < 6; i++) {
       defaultPairId += chars.charAt(Math.floor(Math.random() * chars.length));
     }
-    const user1 = { id: 'u_' + Math.random().toString(36).substring(2, 9), name: userName || 'Viswa' };
-    const user2 = { id: 'u_' + Math.random().toString(36).substring(2, 9), name: partnerName || 'Partner', joined: false };
+    const user1 = { id: 'u_' + Math.random().toString(36).substring(2, 9), name: (userName || 'Viswa').trim() };
+    const user2 = { id: 'u_' + Math.random().toString(36).substring(2, 9), name: (partnerName || 'Partner').trim(), joined: false };
 
     const pair = {
       id: defaultPairId,
@@ -125,7 +125,7 @@ class SyncEngine {
   }
 
   // Join an existing pairing space from Device B
-  async joinPair(pairCode, userName) {
+  async joinPair(pairCode, userName, partnerName) {
     const code = (pairCode || '').trim().toUpperCase();
     if (!code) {
       return { success: false, error: "Please enter your partner's 6-character code." };
@@ -138,29 +138,31 @@ class SyncEngine {
         body: JSON.stringify({
           action: 'join_pair',
           pairCode: code,
-          userName: userName || 'Partner'
+          userName: (userName || '').trim(),
+          partnerName: (partnerName || '').trim()
         })
       });
 
       const data = await res.json().catch(() => ({}));
       if (res.ok && data.success && data.pair) {
         window.storage.setPair(data.pair);
-        // Set this device's user as User 2
+        // Set this device's user as current user
         window.storage.setCurrentUser(data.currentUser || data.pair.user2);
         window.storage.setReminders(data.reminders || []);
         window.storage.setResponses(data.responses || []);
+        window.storage.setActiveSession(true);
         this.broadcast('SYNC_UPDATE', { reminders: data.reminders, responses: data.responses, pair: data.pair });
         return { success: true, pair: data.pair };
       }
       return {
         success: false,
-        error: data.error || "That code doesn't match. Check the code on your partner's phone and try again."
+        error: data.error || "That code doesn't match. Check your partner's code and try again."
       };
     } catch (e) {
       console.warn('Join pair offline error:', e);
       return {
         success: false,
-        error: "That code doesn't match. Check the code on your partner's phone and try again."
+        error: "That code doesn't match. Check your partner's code and try again."
       };
     }
   }

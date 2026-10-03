@@ -40,40 +40,10 @@ class UIManager {
     }
   }
 
-  // Render Dev Mode Perspective Switcher Banner
+  // Render Dev Mode Switcher Banner (Disabled in consumer UI)
   renderUserBar() {
-    const pair = window.storage.getPair();
-    const currentUser = window.storage.getCurrentUser();
     const barEl = document.getElementById('user-bar');
-    if (!barEl) return;
-
-    if (!pair) {
-      barEl.style.display = 'none';
-      return;
-    }
-
-    barEl.style.display = 'flex';
-    const myName = currentUser ? currentUser.name : pair.user1.name;
-    const isUser1 = currentUser ? currentUser.id === pair.user1.id : true;
-    const partnerName = isUser1 ? pair.user2.name : pair.user1.name;
-
-    barEl.innerHTML = `
-      <div class="user-bar-badge">
-        <span style="font-size: 0.68rem; font-weight: 700; color: #FCD34D;">DEV MODE</span>
-        <div class="user-bar-dot"></div>
-        <span>Device Active User: <strong>${myName}</strong></span>
-      </div>
-      <button class="user-bar-btn" id="btn-switch-user" title="Simulate switching to the partner device">
-        Simulate ${partnerName} ⇄
-      </button>
-    `;
-
-    document.getElementById('btn-switch-user')?.addEventListener('click', () => {
-      const nextUser = isUser1 ? pair.user2 : pair.user1;
-      window.storage.setCurrentUser(nextUser);
-      this.showToast(`Switched simulated device to ${nextUser.name}`);
-      this.render();
-    });
+    if (barEl) barEl.style.display = 'none';
   }
 
   // Render Network Status Badge
@@ -95,10 +65,11 @@ class UIManager {
     const currentUser = window.storage.getCurrentUser();
     const pair = window.storage.getPair();
     const greetingEl = document.getElementById('header-greeting');
-    const dateEl = document.getElementById('header-date');
-    const pairPillEl = document.getElementById('header-pair-pill');
+    const partnerStatusEl = document.getElementById('header-partner-status');
 
-    const name = currentUser ? currentUser.name : (pair ? pair.user1.name : 'Viswa');
+    const name = currentUser ? currentUser.name : (pair ? pair.user1.name : 'You');
+    const isUser1 = currentUser && pair ? currentUser.id === pair.user1.id : true;
+    const partnerName = pair ? (isUser1 ? pair.user2.name : pair.user1.name) : 'Partner';
     
     // Time of day greeting
     const hour = new Date().getHours();
@@ -107,22 +78,7 @@ class UIManager {
     if (hour >= 17) timeGreeting = 'Good Evening';
 
     if (greetingEl) greetingEl.innerHTML = `${timeGreeting}, ${name} 👋`;
-
-    const options = { weekday: 'long', month: 'short', day: 'numeric' };
-    if (dateEl) dateEl.innerText = new Date().toLocaleDateString('en-US', options);
-
-    if (pairPillEl && pair) {
-      pairPillEl.innerHTML = `
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
-          <circle cx="9" cy="7" r="4"></circle>
-          <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
-          <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
-        </svg>
-        ${pair.id}
-      `;
-      pairPillEl.onclick = () => this.switchTab('settings');
-    }
+    if (partnerStatusEl) partnerStatusEl.innerText = `Connected with ${partnerName}`;
 
     this.renderNetworkStatus();
   }
@@ -282,7 +238,6 @@ class UIManager {
 
     const userNameInput = document.getElementById('settings-user-name');
     const partnerNameInput = document.getElementById('settings-partner-name');
-    const pairCodeDisplay = document.getElementById('settings-pair-code');
     const notifStatusEl = document.getElementById('settings-notif-status');
 
     if (pair && currentUser) {
@@ -290,7 +245,6 @@ class UIManager {
       const isUser1 = currentUser.id === pair.user1.id;
       const partnerName = isUser1 ? pair.user2.name : pair.user1.name;
       if (partnerNameInput) partnerNameInput.value = partnerName;
-      if (pairCodeDisplay) pairCodeDisplay.innerText = pair.id;
     }
 
     if (notifStatusEl) {
@@ -302,6 +256,11 @@ class UIManager {
         notifStatusEl.innerHTML = '<button class="user-bar-btn" onclick="ui.promptNotificationPermission()">Enable</button>';
       }
     }
+  }
+
+  openDeactivateModal() {
+    const modal = document.getElementById('modal-deactivate-confirm');
+    if (modal) modal.classList.add('active');
   }
 
   // Switch Navigation Tab

@@ -95,30 +95,40 @@ module.exports = async function handler(req, res) {
         });
       }
 
-      // ACTION: Join Existing Pair
+      // ACTION: Join / Reconnect Existing Pair
       if (action === 'join_pair') {
-        const { pairCode, userName } = body;
+        const { pairCode, userName, partnerName } = body;
         const pairId = (pairCode || '').trim().toUpperCase();
         const data = await db.getPairData(pairId);
 
-        if (!data) {
-          return res.status(404).json({ error: "That code doesn't match. Check the code on your partner's phone and try again." });
+        if (!data || !data.pair) {
+          return res.status(404).json({ error: "That code doesn't match. Check your partner's code and try again." });
         }
 
-        // Assign user 2 name and mark paired
-        if (userName) {
-          data.pair.user2.name = userName;
+        let currentUser = data.pair.user2;
+        const cleanUserName = (userName || '').trim();
+
+        // Check if user is reconnecting as user 1 (creator)
+        if (cleanUserName && data.pair.user1 && data.pair.user1.name.toLowerCase() === cleanUserName.toLowerCase()) {
+          currentUser = data.pair.user1;
+        } else {
+          // Connecting / reconnecting as user 2 (partner)
+          if (cleanUserName) {
+            data.pair.user2.name = cleanUserName;
+          }
+          data.pair.user2.joined = true;
+          currentUser = data.pair.user2;
         }
-        data.pair.user2.joined = true;
+
         data.pair.paired = true;
         await db.savePairData(pairId, data);
 
         return res.status(200).json({
           success: true,
           pair: data.pair,
-          currentUser: data.pair.user2,
-          reminders: data.reminders,
-          responses: data.responses
+          currentUser,
+          reminders: data.reminders || [],
+          responses: data.responses || []
         });
       }
 

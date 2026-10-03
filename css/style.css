@@ -1151,79 +1151,61 @@ html, body {
   line-height: 1.45;
 }
 
-/* Option Cards (Step 1) */
-.onboard-action-cards {
+/* Onboarding Action Stack (Step 1) */
+.onboard-action-stack {
   display: flex;
   flex-direction: column;
-  gap: 14px;
-  margin: 12px 0 24px 0;
+  gap: 12px;
+  margin-top: 20px;
 }
 
-.onboard-choice-card {
-  width: 100%;
+.onboard-or-divider {
   display: flex;
   align-items: center;
-  gap: 16px;
-  padding: 18px;
-  border-radius: var(--radius-lg);
-  border: 1.5px solid var(--border-light);
-  background: #FFFFFF;
-  text-align: left;
-  cursor: pointer;
-  font-family: inherit;
-  transition: all 0.18s ease;
-  box-shadow: var(--shadow-sm);
+  text-align: center;
+  color: var(--text-muted);
+  font-size: 0.85rem;
+  font-weight: 600;
+  margin: 4px 0;
 }
 
-.onboard-choice-card:hover {
+.onboard-or-divider::before,
+.onboard-or-divider::after {
+  content: '';
+  flex: 1;
+  border-bottom: 1px solid var(--border-light);
+}
+
+.onboard-or-divider span {
+  padding: 0 12px;
+}
+
+.btn-secondary-action {
+  width: 100%;
+  height: 52px;
+  background: #FFFFFF;
+  color: var(--text-main);
+  border: 1.5px solid var(--border-light);
+  border-radius: var(--radius-md);
+  font-family: inherit;
+  font-size: 1rem;
+  font-weight: 700;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  box-shadow: var(--shadow-sm);
+  transition: all 0.15s ease;
+}
+
+.btn-secondary-action:hover {
   border-color: var(--primary);
   background: #FAFAFE;
 }
 
-.onboard-choice-card:active {
+.btn-secondary-action:active {
   transform: scale(0.98);
-}
-
-.onboard-choice-card.primary {
-  border-color: rgba(79, 70, 229, 0.35);
-  background: #F5F3FF;
-}
-
-.choice-card-icon {
-  width: 48px;
-  height: 48px;
-  border-radius: 14px;
-  background: #FFFFFF;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 1.5rem;
-  flex-shrink: 0;
-  box-shadow: var(--shadow-sm);
-}
-
-.choice-card-content {
-  flex: 1;
-}
-
-.choice-card-title {
-  font-size: 1.05rem;
-  font-weight: 700;
-  color: var(--text-main);
-  margin-bottom: 3px;
-}
-
-.choice-card-desc {
-  font-size: 0.8rem;
-  color: var(--text-secondary);
-  line-height: 1.35;
-}
-
-.choice-card-arrow {
-  font-size: 1.25rem;
-  color: var(--primary);
-  font-weight: 700;
-  padding-left: 4px;
 }
 
 .onboard-form-body {

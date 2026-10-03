@@ -30,6 +30,7 @@ const CONFIG = {
   ],
 
   STORAGE_KEYS: {
+    ACTIVE_SESSION: 'duo_active_session',
     PAIR: 'duo_pair_data',
     USER: 'duo_current_user',
     REMINDERS: 'duo_reminders',
