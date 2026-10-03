@@ -1,5 +1,6 @@
 // Scheduled Cron Reminder Dispatcher: api/cron.js
-// Runs every minute via Vercel Cron or external scheduler to dispatch scheduled Web Push reminders.
+// Callable serverless endpoint executed every 1 minute via external cron (e.g. cron-job.org).
+// Secured via CRON_SECRET.
 
 const db = require('./_db');
 const push = require('./_push');
@@ -34,14 +35,29 @@ function isReminderActiveOnDay(reminder, date) {
 
 module.exports = async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET, POST');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, x-cron-secret');
 
-  // Verify CRON_SECRET if configured
-  if (process.env.CRON_SECRET) {
-    const authHeader = req.headers['authorization'];
-    const isVercelCron = req.headers['x-vercel-cron'] !== undefined;
-    if (!isVercelCron && authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
-      return res.status(401).json({ error: 'Unauthorized cron request' });
+  if (req.method === 'OPTIONS') {
+    return res.status(200).end();
+  }
+
+  // 1. Security Check via CRON_SECRET
+  const configuredSecret = process.env.CRON_SECRET;
+  if (configuredSecret) {
+    const authHeader = req.headers['authorization'] || '';
+    const headerSecret = req.headers['x-cron-secret'] || '';
+    const querySecret = (req.query && req.query.secret) || '';
+
+    const providedSecret = authHeader.startsWith('Bearer ')
+      ? authHeader.slice(7).trim()
+      : (headerSecret || querySecret);
+
+    if (providedSecret !== configuredSecret) {
+      return res.status(401).json({
+        error: 'Unauthorized: Invalid or missing CRON_SECRET',
+        message: 'Provide CRON_SECRET via Authorization Bearer header, x-cron-secret header, or ?secret= query parameter.'
+      });
     }
   }
 
@@ -52,6 +68,18 @@ module.exports = async function handler(req, res) {
   const dateKey = getDateKey(now);
 
   const pairIds = await db.getAllPairIds();
+
+  // Fast exit if no pairs exist
+  if (!pairIds || pairIds.length === 0) {
+    return res.status(200).json({
+      success: true,
+      timestamp: now.toISOString(),
+      checkedPairs: 0,
+      notificationsSent: 0,
+      message: 'No active pairs found.'
+    });
+  }
+
   const stats = {
     checkedPairs: pairIds.length,
     remindersEvaluated: 0,
@@ -91,15 +119,14 @@ module.exports = async function handler(req, res) {
 
           if (userResp && userResp.status === 'snoozed' && userResp.snoozeUntil) {
             const snoozeDate = new Date(userResp.snoozeUntil);
-            // If current time is within +/- 1 minute of snooze date
             const diffMs = Math.abs(now.getTime() - snoozeDate.getTime());
-            if (diffMs <= 70000) {
+            if (diffMs <= 70000) { // +/- 1 min tolerance
               isDueNow = true;
               triggerType = 'snooze';
               triggerTimeKey = `snooze_${snoozeDate.getUTCHours()}_${snoozeDate.getUTCMinutes()}`;
             }
           } else {
-            // Check base reminder time (allowing for user time matching current time)
+            // Check base reminder time
             if (reminder.time === currentUtcTime || reminder.time === now.toTimeString().substring(0, 5)) {
               isDueNow = true;
               triggerType = 'base';
