@@ -1,18 +1,16 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <style name="AppTheme" parent="android:Theme.Material.Light.NoActionBar">
+    <style name="AppTheme" parent="@android:style/Theme.DeviceDefault.Light.NoActionBar">
         <item name="android:colorPrimary">@color/colorPrimary</item>
         <item name="android:colorPrimaryDark">@color/colorPrimaryDark</item>
         <item name="android:colorAccent">@color/colorAccent</item>
     </style>
 
     <style name="AppTheme.NoActionBarLaunch" parent="AppTheme">
-        <item name="android:windowBackground">#F8FAFC</item>
+        <item name="android:windowBackground">@color/windowBackground</item>
     </style>
 
-    <style name="AppTheme.AlarmFullScreen" parent="android:Theme.Material.NoActionBar.Fullscreen">
-        <item name="android:windowBackground">#0F172A</item>
-        <item name="android:windowShowWhenLocked">true</item>
-        <item name="android:windowTurnScreenOn">true</item>
+    <style name="AppTheme.AlarmFullScreen" parent="@android:style/Theme.DeviceDefault.NoActionBar.Fullscreen">
+        <item name="android:windowBackground">@color/alarmBackground</item>
     </style>
 </resources>

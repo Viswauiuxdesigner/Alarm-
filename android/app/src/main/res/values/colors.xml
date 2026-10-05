@@ -3,4 +3,6 @@
     <color name="colorPrimary">#4F46E5</color>
     <color name="colorPrimaryDark">#4338CA</color>
     <color name="colorAccent">#10B981</color>
+    <color name="windowBackground">#F8FAFC</color>
+    <color name="alarmBackground">#0F172A</color>
 </resources>
