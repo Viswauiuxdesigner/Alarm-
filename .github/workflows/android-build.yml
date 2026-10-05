@@ -24,6 +24,7 @@ jobs:
 
       - name: Install Gradle 8.2.2
         run: |
+          mkdir -p $HOME/gradle
           curl -sSL https://services.gradle.org/distributions/gradle-8.2.2-bin.zip -o /tmp/gradle.zip
           unzip -q /tmp/gradle.zip -d $HOME/gradle
           echo "$HOME/gradle/gradle-8.2.2/bin" >> $GITHUB_PATH
@@ -31,6 +32,7 @@ jobs:
       - name: Build Debug APK with Gradle
         working-directory: ./android
         run: |
+          gradle --version
           gradle assembleDebug --stacktrace --no-daemon
 
       - name: Verify Generated APK
