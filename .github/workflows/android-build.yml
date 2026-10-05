@@ -22,19 +22,24 @@ jobs:
           distribution: 'temurin'
           java-version: '17'
 
-      - name: Setup Gradle 8.2.2 via Python
+      - name: Setup Gradle 8.2.2
         run: |
-          python3 -c "
+          python3 - << 'EOF'
           import urllib.request, zipfile, os
+
           url = 'https://services.gradle.org/distributions/gradle-8.2.2-bin.zip'
           print('Downloading Gradle 8.2.2...')
-          urllib.request.urlretrieve(url, '/tmp/gradle.zip')
+          req = urllib.request.Request(url, headers={'User-Agent': 'Mozilla/5.0'})
+          with urllib.request.urlopen(req) as resp, open('/tmp/gradle.zip', 'wb') as f:
+              f.write(resp.read())
+
           print('Extracting Gradle...')
           os.makedirs('/tmp/gradle_dist', exist_ok=True)
           with zipfile.ZipFile('/tmp/gradle.zip', 'r') as z:
               z.extractall('/tmp/gradle_dist')
-          print('Gradle ready.')
-          "
+
+          print('Gradle extracted successfully.')
+          EOF
           echo "/tmp/gradle_dist/gradle-8.2.2/bin" >> $GITHUB_PATH
 
       - name: Build Debug APK with Gradle
