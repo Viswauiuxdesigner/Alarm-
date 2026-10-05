@@ -22,31 +22,12 @@ jobs:
           distribution: 'temurin'
           java-version: '17'
 
-      - name: Setup Gradle 8.2.2
-        run: |
-          python3 - << 'EOF'
-          import urllib.request, zipfile, os
-
-          url = 'https://services.gradle.org/distributions/gradle-8.2.2-bin.zip'
-          print('Downloading Gradle 8.2.2...')
-          req = urllib.request.Request(url, headers={'User-Agent': 'Mozilla/5.0'})
-          with urllib.request.urlopen(req) as resp, open('/tmp/gradle.zip', 'wb') as f:
-              f.write(resp.read())
-
-          print('Extracting Gradle...')
-          os.makedirs('/tmp/gradle_dist', exist_ok=True)
-          with zipfile.ZipFile('/tmp/gradle.zip', 'r') as z:
-              z.extractall('/tmp/gradle_dist')
-
-          print('Gradle extracted successfully.')
-          EOF
-          echo "/tmp/gradle_dist/gradle-8.2.2/bin" >> $GITHUB_PATH
-
-      - name: Build Debug APK with Gradle
-        working-directory: ./android
-        run: |
-          gradle --version
-          gradle assembleDebug --stacktrace --no-daemon
+      - name: Build Debug APK with Gradle Action
+        uses: gradle/actions/setup-gradle@v3
+        with:
+          gradle-version: '8.2.2'
+          build-root-directory: android
+          arguments: assembleDebug --stacktrace
 
       - name: Verify Generated APK
         run: |
