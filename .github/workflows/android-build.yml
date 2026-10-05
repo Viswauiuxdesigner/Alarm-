@@ -24,9 +24,9 @@ jobs:
 
       - name: Install Gradle 8.2.2
         run: |
-          wget -q https://services.gradle.org/distributions/gradle-8.2.2-bin.zip -O /tmp/gradle.zip
-          sudo unzip -q -d /opt/gradle /tmp/gradle.zip
-          echo "/opt/gradle/gradle-8.2.2/bin" >> $GITHUB_PATH
+          curl -sSL https://services.gradle.org/distributions/gradle-8.2.2-bin.zip -o /tmp/gradle.zip
+          unzip -q /tmp/gradle.zip -d $HOME/gradle
+          echo "$HOME/gradle/gradle-8.2.2/bin" >> $GITHUB_PATH
 
       - name: Build Debug APK with Gradle
         working-directory: ./android
