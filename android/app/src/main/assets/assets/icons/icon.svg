@@ -1,0 +1,47 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#6366F1"/>
+      <stop offset="100%" stop-color="#4338CA"/>
+    </linearGradient>
+    <linearGradient id="circleGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#38BDF8"/>
+      <stop offset="100%" stop-color="#0284C7"/>
+    </linearGradient>
+    <filter id="shadow" x="-10%" y="-10%" width="120%" height="120%">
+      <feDropShadow dx="0" dy="8" stdDeviation="12" flood-opacity="0.25" flood-color="#1E1B4B" />
+    </filter>
+  </defs>
+
+  <!-- App Background with smooth squircle -->
+  <rect width="512" height="512" rx="128" fill="url(#bgGrad)"/>
+
+  <!-- Subtle ambient inner glow ring -->
+  <circle cx="256" cy="256" r="180" fill="none" stroke="rgba(255, 255, 255, 0.12)" stroke-width="6"/>
+
+  <!-- Two Intersecting/Synchronized Bells & Check Accountability Rings -->
+  <!-- Left User Icon/Indicator -->
+  <g filter="url(#shadow)">
+    <!-- Main Bell Body -->
+    <path d="M256 120 C200 120 160 165 160 230 C160 290 140 310 125 325 C120 330 125 340 135 340 L377 340 C387 340 392 330 387 325 C372 310 352 290 352 230 C352 165 312 120 256 120 Z" fill="#FFFFFF"/>
+    <!-- Bell Top Loop -->
+    <circle cx="256" cy="110" r="22" fill="none" stroke="#FFFFFF" stroke-width="14"/>
+    <!-- Bell Clapper -->
+    <circle cx="256" cy="358" r="32" fill="#E0E7FF"/>
+  </g>
+
+  <!-- Two Synchronized Dots (Two People) -->
+  <!-- User 1 (Green Going Check badge) -->
+  <g transform="translate(160, 360)">
+    <circle cx="24" cy="24" r="38" fill="#10B981" stroke="#4338CA" stroke-width="8"/>
+    <path d="M14 24 L21 31 L34 16" fill="none" stroke="#FFFFFF" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>
+  </g>
+
+  <!-- User 2 (Sky Blue Sync badge) -->
+  <g transform="translate(304, 360)">
+    <circle cx="24" cy="24" r="38" fill="#0EA5E9" stroke="#4338CA" stroke-width="8"/>
+    <circle cx="16" cy="24" r="4" fill="#FFFFFF"/>
+    <circle cx="24" cy="24" r="4" fill="#FFFFFF"/>
+    <circle cx="32" cy="24" r="4" fill="#FFFFFF"/>
+  </g>
+</svg>

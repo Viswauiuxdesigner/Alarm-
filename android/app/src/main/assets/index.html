@@ -1,0 +1,485 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <title>Duo — Two-Person Accountability Reminders</title>
+  
+  <!-- PWA & Mobile Optimization -->
+  <link rel="manifest" href="./manifest.json" />
+  <meta name="theme-color" content="#4F46E5" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+  <meta name="apple-mobile-web-app-title" content="Duo" />
+  <link rel="icon" type="image/svg+xml" href="./assets/icons/icon.svg" />
+  <link rel="apple-touch-icon" href="./assets/icons/icon-192.png" />
+
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+  <!-- Stylesheet -->
+  <link rel="stylesheet" href="./css/style.css" />
+</head>
+<body>
+
+  <!-- Toast Notification Overlay -->
+  <div id="toast-container" class="toast-container"></div>
+
+  <!-- Main Mobile App Shell -->
+  <div id="app-container">
+
+    <!-- DEV MODE Switcher Banner (For Single-Device Simulation & Multi-User Testing) -->
+    <div id="user-bar" class="user-bar" style="display:none;"></div>
+
+    <!-- Header -->
+    <header class="app-header">
+      <div class="greeting-block">
+        <h1 id="header-greeting">Good Morning, Viswa 👋</h1>
+        <div style="display: flex; align-items: center; gap: 8px; margin-top: 2px;">
+          <p id="header-partner-status" style="margin-top:0; font-size: 0.82rem; font-weight: 600; color: var(--text-secondary);">Connected with Friend</p>
+          <span style="font-size: 0.72rem; font-weight: 600;" id="network-status-badge"></span>
+        </div>
+      </div>
+      <div class="header-actions"></div>
+    </header>
+
+    <!-- Main Viewport (Scrollable Content) -->
+    <main class="main-viewport">
+
+      <!-- ==============================================
+           VIEW 1: TODAY HOME SCREEN
+           ============================================== -->
+      <section id="view-today" class="view-section active">
+        <div class="section-header">
+          <span class="section-title">Today's Schedule</span>
+          <span class="section-badge" id="today-count-badge">Active</span>
+        </div>
+
+        <!-- Reminders List -->
+        <div class="reminders-list" id="today-reminders-list">
+          <!-- Rendered dynamically via ui.js -->
+        </div>
+      </section>
+
+      <!-- ==============================================
+           VIEW 2: 7-DAY HISTORY SCREEN
+           ============================================== -->
+      <section id="view-history" class="view-section">
+        <div class="section-header">
+          <span class="section-title">Accountability History</span>
+          <span class="section-badge">Past 7 Days</span>
+        </div>
+
+        <div id="history-content">
+          <!-- Rendered dynamically via ui.js -->
+        </div>
+      </section>
+
+      <!-- ==============================================
+           VIEW 3: SETTINGS SCREEN
+           ============================================== -->
+      <section id="view-settings" class="view-section">
+        <div class="section-header">
+          <span class="section-title">Settings</span>
+        </div>
+
+        <!-- Profile Section -->
+        <div class="settings-section">
+          <div class="settings-section-title">Profile & Names</div>
+          <div class="settings-item">
+            <div class="settings-item-label">
+              <span>Your Name</span>
+              <span class="settings-item-subtext">How your partner sees you</span>
+            </div>
+            <input type="text" class="settings-input" id="settings-user-name" value="Viswa" />
+          </div>
+          <div class="settings-item">
+            <div class="settings-item-label">
+              <span>Partner Name</span>
+              <span class="settings-item-subtext">How you see your partner</span>
+            </div>
+            <input type="text" class="settings-input" id="settings-partner-name" value="Friend" />
+          </div>
+        </div>
+
+        <!-- Notifications Section -->
+        <div class="settings-section">
+          <div class="settings-section-title">Notifications</div>
+          <div class="settings-item" style="flex-direction: column; align-items: flex-start; gap: 10px;">
+            <div id="settings-notif-status-display" style="font-weight: 600; font-size: 0.95rem;">
+              ● Notifications enabled
+            </div>
+            <div id="settings-notif-action-wrap" style="width: 100%;">
+              <button class="btn-primary" id="btn-enable-notifications" style="height: 42px; font-size: 0.9rem;">Enable Notifications</button>
+            </div>
+            <div id="settings-notif-helper" style="font-size: 0.8rem; color: var(--text-secondary);">
+              Receive shared reminder alerts even when your screen is locked.
+            </div>
+          </div>
+          <div class="settings-item">
+            <div class="settings-item-label">
+              <span>Test Reminder Trigger</span>
+              <span class="settings-item-subtext">Simulate alarm in 3 seconds</span>
+            </div>
+            <button class="user-bar-btn" id="btn-test-notification">Test ⏰</button>
+          </div>
+        </div>
+
+        <!-- Install App Section -->
+        <div class="settings-section">
+          <div class="settings-section-title">Install App</div>
+          <div class="settings-item" style="flex-direction: column; align-items: flex-start; gap: 10px;">
+            <div class="settings-item-label">
+              <span>App-like Experience</span>
+              <span class="settings-item-subtext">Open directly in standalone mode without browser bars.</span>
+            </div>
+            <div id="settings-install-action-wrap" style="width: 100%;">
+              <button class="btn-primary" id="btn-install-app" style="height: 42px; font-size: 0.9rem;">Install App 📲</button>
+              <div id="settings-install-helper" style="display: none; font-size: 0.82rem; color: var(--text-secondary); margin-top: 6px; line-height: 1.4;">
+                Install this app from your browser menu → Add to Home Screen / Install App
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Session Management -->
+        <div class="settings-section">
+          <div class="settings-section-title">Device Session</div>
+          <div class="settings-item">
+            <div class="settings-item-label">
+              <span style="color: var(--danger); font-weight: 700;">Deactivate this device</span>
+              <span class="settings-item-subtext">Log out of this shared reminder space</span>
+            </div>
+            <button class="user-bar-btn" id="btn-open-deactivate" style="color: var(--danger); border-color: var(--danger-border); font-weight: 700;">Deactivate</button>
+          </div>
+        </div>
+      </section>
+
+    </main>
+
+    <!-- Floating Action Button (+ Add Reminder) -->
+    <div class="fab-container" id="fab-add-reminder">
+      <button class="btn-fab" title="Add Reminder">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+          <line x1="12" y1="5" x2="12" y2="19"></line>
+          <line x1="5" y1="12" x2="19" y2="12"></line>
+        </svg>
+        <span>Add Reminder</span>
+      </button>
+    </div>
+
+    <!-- Bottom Navigation Bar -->
+    <nav class="bottom-nav">
+      <button class="nav-item active" data-tab="today">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
+          <polyline points="9 22 9 12 15 12 15 22"></polyline>
+        </svg>
+        <span>Today</span>
+      </button>
+      <button class="nav-item" data-tab="history">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M12 8v4l3 3"></path>
+          <circle cx="12" cy="12" r="9"></circle>
+        </svg>
+        <span>History</span>
+      </button>
+      <button class="nav-item" data-tab="settings">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="12" r="3"></circle>
+          <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+        </svg>
+        <span>Settings</span>
+      </button>
+    </nav>
+
+    <!-- ==============================================
+         MODAL 1: CREATE / EDIT REMINDER BOTTOM SHEET
+         ============================================== -->
+    <div id="modal-create-reminder" class="modal-overlay">
+      <div class="bottom-sheet">
+        <div class="sheet-handle"></div>
+        <div class="sheet-header">
+          <h2 class="sheet-title" id="create-modal-title">Create Reminder</h2>
+          <button class="sheet-close-btn" onclick="ui.closeModal('modal-create-reminder')">✕</button>
+        </div>
+
+        <!-- Activity Selection -->
+        <div class="form-group">
+          <label class="form-label">Select Activity</label>
+          <div class="activity-grid" id="activity-picker-grid"></div>
+        </div>
+
+        <!-- Custom Activity Name (if Custom selected) -->
+        <div class="form-group" id="group-custom-title" style="display:none;">
+          <label class="form-label">Activity Name</label>
+          <input type="text" class="form-input" id="input-custom-title" placeholder="e.g. Read 20 Pages" />
+        </div>
+
+        <!-- Reminder Time -->
+        <div class="form-group">
+          <label class="form-label">Reminder Time</label>
+          <input type="time" class="form-input" id="input-reminder-time" value="06:00" />
+        </div>
+
+        <!-- Repeat Frequency -->
+        <div class="form-group">
+          <label class="form-label">Repeat</label>
+          <select class="form-select" id="select-repeat">
+            <option value="daily">Every day</option>
+            <option value="weekdays">Weekdays (Mon-Fri)</option>
+            <option value="custom">Selected days</option>
+            <option value="once">Once</option>
+          </select>
+          <div class="day-selector" id="wrap-custom-days" style="display:none;">
+            <div style="display: flex; gap: 6px; width: 100%;" id="day-buttons-wrap"></div>
+          </div>
+        </div>
+
+        <!-- Submit & Delete Buttons -->
+        <button class="btn-primary" id="btn-save-reminder">Create Reminder</button>
+        <button class="btn-secondary" id="btn-delete-reminder" style="display:none; color: var(--danger); border-color: var(--danger-border);">Delete Reminder</button>
+      </div>
+    </div>
+
+    <!-- ==============================================
+         MODAL 2: REMINDER RESPONSE SCREEN
+         ============================================== -->
+    <div id="modal-reminder-response" class="modal-overlay">
+      <div class="bottom-sheet">
+        <div class="sheet-handle"></div>
+        
+        <div class="response-card-hero">
+          <div class="response-hero-emoji" id="resp-hero-emoji">🚶</div>
+          <h2 class="response-hero-title" id="resp-hero-title">Walking</h2>
+          <p class="response-hero-subtitle" id="resp-hero-subtitle">It's time to go for your walk.</p>
+        </div>
+
+        <div style="text-align: center; font-size: 0.88rem; font-weight: 700; color: var(--text-secondary); margin-bottom: 8px;">
+          What are you doing?
+        </div>
+
+        <div class="response-actions-stack">
+          <button class="btn-action-going" id="btn-action-going">
+            <span>✅</span>
+            <span>I'm Going</span>
+          </button>
+          <button class="btn-action-skip" id="btn-action-skip">
+            <span>❌</span>
+            <span>Skip Today</span>
+          </button>
+          <button class="btn-action-snooze" id="btn-action-snooze">
+            <span>⏰</span>
+            <span>Snooze 10 min</span>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==============================================
+         MODAL 3: NOTIFICATION PERMISSION EXPLAINER
+         ============================================== -->
+    <div id="modal-notif-permission" class="modal-overlay">
+      <div class="bottom-sheet">
+        <div class="sheet-handle"></div>
+        <div class="response-card-hero">
+          <div class="response-hero-emoji">🔔</div>
+          <h2 class="response-hero-title">Stay accountable</h2>
+          <p class="response-hero-subtitle" style="max-width: 280px; margin: 8px auto 0 auto;">
+            Allow notifications so you don't miss your shared reminders and can see each other's responses.
+          </p>
+        </div>
+        <button class="btn-primary" id="btn-enable-notif-confirm">Enable Notifications</button>
+        <button class="btn-secondary" id="btn-enable-notif-later">Maybe Later</button>
+      </div>
+    </div>
+
+    <!-- ==============================================
+         MODAL 4: DEACTIVATE CONFIRMATION MODAL
+         ============================================== -->
+    <div id="modal-deactivate-confirm" class="modal-overlay">
+      <div class="bottom-sheet">
+        <div class="sheet-handle"></div>
+        <div class="response-card-hero">
+          <div class="response-hero-emoji">📱</div>
+          <h2 class="response-hero-title">Deactivate this device?</h2>
+          <p class="response-hero-subtitle" style="max-width: 290px; margin: 8px auto 0 auto; line-height: 1.45;">
+            You will need the pairing code to connect this device again. Your partner's reminders will remain safe.
+          </p>
+        </div>
+        <button class="btn-secondary" id="btn-cancel-deactivate" style="margin-bottom: 8px;" type="button">Cancel</button>
+        <button class="btn-primary" id="btn-confirm-deactivate" style="background: #DC2626; box-shadow: 0 4px 12px rgba(220, 38, 38, 0.25);" type="button">Deactivate</button>
+      </div>
+    </div>
+
+    <!-- ==============================================
+         ONBOARDING SCREEN (Role-based Guided Flow)
+         ============================================== -->
+    <div id="onboarding-screen" class="onboarding-screen" style="display:none;">
+      
+      <!-- STEP 1: First-time / Logged-out Screen -->
+      <div id="onboard-step-welcome" class="onboard-step active">
+        <div class="onboarding-header">
+          <div class="onboarding-icon">🤝</div>
+          <h1 id="onboard-main-title">Two phones.<br>One reminder space.</h1>
+          <p id="onboard-main-subtitle">Connect with your partner to manage reminders together.</p>
+        </div>
+
+        <div class="onboard-form-body">
+          <div id="onboard-welcome-error" class="onboard-error-box" style="display:none;">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
+            <span id="onboard-welcome-error-text">Please enter both your name and your partner's name.</span>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="onboard-user-name">Your Name</label>
+            <input type="text" class="form-input" id="onboard-user-name" placeholder="Enter your name" maxlength="30" autocomplete="name" />
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="onboard-partner-name">Partner's Name</label>
+            <input type="text" class="form-input" id="onboard-partner-name" placeholder="Enter your partner's name" maxlength="30" autocomplete="name" />
+          </div>
+
+          <div class="onboard-action-stack">
+            <button class="btn-primary" id="btn-generate-code" type="button">
+              <span>Generate New Code</span>
+            </button>
+
+            <div class="onboard-or-divider">
+              <span>or</span>
+            </div>
+
+            <button class="btn-secondary-action" id="btn-enter-existing-code" type="button">
+              <span>Enter Existing Code</span>
+            </button>
+          </div>
+        </div>
+
+        <div class="onboard-footer">
+          Duo • 2-Person Shared Accountability
+        </div>
+      </div>
+
+      <!-- STEP 2: Dedicated Pairing Waiting Screen (Creator) -->
+      <div id="onboard-step-waiting" class="onboard-step" style="display:none;">
+        <div class="onboard-top-bar">
+          <button class="onboard-back-btn" id="btn-back-from-waiting" type="button">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+            <span>Back</span>
+          </button>
+        </div>
+
+        <div class="onboarding-header">
+          <div class="onboarding-icon" style="background: rgba(16, 185, 129, 0.12); color: #10B981;">🎉</div>
+          <h1>Your pairing code</h1>
+          <p>Share this code with your partner.<br>Your partner should enter this code on their phone.</p>
+        </div>
+
+        <div class="pairing-code-container">
+          <div class="pairing-code-label">PAIRING CODE</div>
+          <div class="big-pair-code" id="onboard-waiting-code">------</div>
+          <div class="pairing-code-actions">
+            <button class="btn-code-action" id="btn-waiting-copy" type="button">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+              <span>Copy Code</span>
+            </button>
+            <button class="btn-code-action primary" id="btn-waiting-share" type="button">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="18" cy="5" r="3"></circle><circle cx="6" cy="12" r="3"></circle><circle cx="18" cy="19" r="3"></circle><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"></line><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line></svg>
+              <span>Share Code</span>
+            </button>
+          </div>
+        </div>
+
+        <div class="pairing-helper-card">
+          <div class="waiting-partner-badge">
+            <span class="pulse-dot"></span>
+            <span id="waiting-partner-status">Waiting for your partner to join...</span>
+          </div>
+        </div>
+
+        <div class="onboard-footer">
+          Keep this screen open while your partner connects
+        </div>
+      </div>
+
+      <!-- STEP 3: Enter Existing Code Screen -->
+      <div id="onboard-step-enter-code" class="onboard-step" style="display:none;">
+        <div class="onboard-top-bar">
+          <button class="onboard-back-btn" id="btn-back-from-enter-code" type="button">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+            <span>Back</span>
+          </button>
+        </div>
+
+        <div class="onboarding-header">
+          <div class="onboarding-icon">🔗</div>
+          <h1>Enter your partner's code</h1>
+          <p>Enter the 6-character code from your partner's phone.</p>
+        </div>
+
+        <div class="onboard-form-body">
+          <div id="join-error-box" class="onboard-error-box" style="display:none;">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
+            <span id="join-error-text">That code doesn't match. Check your partner's code and try again.</span>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="onboard-existing-code-input">Partner Code</label>
+            <input type="text" class="form-input code-input" id="onboard-existing-code-input" placeholder="ABC123" maxlength="8" autocomplete="off" autocorrect="off" autocapitalize="characters" spellcheck="false" />
+          </div>
+
+          <button class="btn-primary" id="btn-submit-connect-code" type="button">
+            <span>Connect</span>
+          </button>
+        </div>
+
+        <div class="onboard-footer">
+          Duo • 2-Person Shared Accountability
+        </div>
+      </div>
+
+      <!-- STEP 4: Success State (Both Phones) -->
+      <div id="onboard-step-success" class="onboard-step" style="display:none;">
+        <div class="onboarding-header">
+          <div class="onboarding-icon" style="background: rgba(16, 185, 129, 0.15); font-size: 2.8rem;">🎉</div>
+          <h1>You're connected! 🎉</h1>
+          <p>Your reminder space is ready for both of you.</p>
+        </div>
+
+        <div class="connected-pair-card">
+          <div class="connected-user-pill" id="connected-user1-pill">User 1</div>
+          <div class="connected-divider">🤝</div>
+          <div class="connected-user-pill" id="connected-user2-pill">User 2</div>
+        </div>
+
+        <div class="onboard-form-body">
+          <button class="btn-primary" id="btn-onboard-finish" type="button">
+            <span>Open Today</span>
+          </button>
+        </div>
+
+        <div class="onboard-footer">
+          Duo • Ready for accountability
+        </div>
+      </div>
+
+    </div>
+
+  </div>
+
+  <!-- JavaScript Modules -->
+  <script src="./js/config.js"></script>
+  <script src="./js/storage.js"></script>
+  <script src="./js/sound.js"></script>
+  <script src="./js/native-alarm.js"></script>
+  <script src="./js/notifications.js"></script>
+  <script src="./js/sync.js"></script>
+  <script src="./js/reminders.js"></script>
+  <script src="./js/ui.js"></script>
+  <script src="./js/app.js"></script>
+</body>
+</html>
