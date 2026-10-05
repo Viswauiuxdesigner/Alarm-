@@ -24,18 +24,13 @@ jobs:
 
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v3
-
-      - name: Install Android SDK Platform & Build-Tools
-        run: |
-          yes | sdkmanager --licenses || true
-          sdkmanager "platforms;android-34" "build-tools;34.0.0"
+        with:
+          gradle-version: '8.2.2'
 
       - name: Build Debug APK with Gradle
         working-directory: ./android
         run: |
-          gradle wrapper --gradle-version 8.2.2
-          chmod +x gradlew
-          ./gradlew assembleDebug --stacktrace --no-daemon
+          gradle assembleDebug --stacktrace --no-daemon
 
       - name: Upload Debug APK Artifact
         uses: actions/upload-artifact@v4
